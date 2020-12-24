@@ -84,7 +84,7 @@ async def send_chat_message(req: RequestSendMessage = Body(..., title="Message")
     return {"success": True}
 
 
-@router.delete("/messages/{message_id}")
+@router.delete("/chat/messages/{message_id}")
 async def remove_chat_message(
         message_id: str = Path(..., title="Message's id"),
         current_user: UserDb = Depends(get_current_active_user),
