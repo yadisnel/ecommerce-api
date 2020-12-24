@@ -16,7 +16,6 @@ class RequestAddProduct(RwModel):
 
 
 class RequestUpdateProduct(RwModel):
-    product_id: str= Field(..., title="Product's  id")
     name: str = Field(..., title="Product's  name")
     description: str = Field(..., title="Product's  description")
     category_id: str = Field(..., title="Product's  category id")
@@ -36,6 +35,7 @@ class RequestRemoveImageFromProduct(RwModel):
 
 
 class RequestSearchProducts(RwModel):
+    own: bool  = Field(None, title="Only own products")
     text_search: str = Field(None, title="Text search")
     province_id: str = Field(None, title="Province id")
     near: Location = Field(None, title="Near location")
@@ -44,9 +44,4 @@ class RequestSearchProducts(RwModel):
     sub_category_id: str = Field(None, title="Sub-category id")
     min_price: float = Field(None, title="Min price", ge=1)
     max_price: float = Field(None, title="Max price",ge=1)
-
-
-class RequestSetProductFavorited(RwModel):
-    product_id: str = Field(..., title="Product's id")
-    favorited: bool = Field(..., title="Product's favorited")
 

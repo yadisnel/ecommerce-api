@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import List, Dict
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Path
 from fastapi import Body, HTTPException
 from fastapi import Depends
 from fastapi import File, UploadFile
@@ -26,7 +26,6 @@ from src.app.crud.products import add_image_to_product_impl, remove_image_from_p
 from src.app.crud.products import add_product_impl, exists_product_by_id_impl, get_product_by_id_impl
 from src.app.crud.products import exists_image_in_product_impl
 from src.app.crud.products import remove_product_by_id_impl
-from src.app.crud.products import search_own_products_impl, search_own_products_pagination_params_impl
 from src.app.crud.products import search_products_impl
 from src.app.crud.products import search_products_pagination_params_impl
 from src.app.crud.products import set_product_favorited_impl, get_user_products_favorited_in_array
@@ -41,15 +40,13 @@ from src.app.models.province import ProvinceOut
 from src.app.models.user import UserDb
 from src.app.routers.users import get_current_active_user
 from src.app.validations.paginations import RequestPagination, RequestPaginationParams
-from src.app.validations.products import RequestAddProduct, RequestRemoveProduct, RequestUpdateProduct, \
-    RequestRemoveImageFromProduct
+from src.app.validations.products import RequestAddProduct, RequestUpdateProduct
 from src.app.validations.products import RequestSearchProducts
-from src.app.validations.products import RequestSetProductFavorited
 
 router = APIRouter()
 
 
-@router.post("/products/add-product", response_model=ProductOut)
+@router.post("/products/", response_model=ProductOut)
 async def add_one_product(current_user: UserDb = Depends(get_current_active_user),
                           req: RequestAddProduct = Body(..., title="Product"),
                           conn: AsyncIOMotorClient = Depends(get_database)):
@@ -102,17 +99,18 @@ async def add_one_product(current_user: UserDb = Depends(get_current_active_user
     product_in.deleted = False
     product_db : ProductDb = await add_product_impl(user_id=current_user.id, product_in=product_in, conn=conn)
     products_ids: List[str] = [product_db.id]
-    dict_favorited: Dict = await get_user_products_favorited_in_array(user_id=current_user.id, products_ids=products_ids,conn=conn)
+    dict_favorite: Dict = await get_user_products_favorited_in_array(user_id=current_user.id, products_ids=products_ids,conn=conn)
     product_out: ProductOut = ProductOut(**product_db.dict())
-    if product_out.id in dict_favorited:
-        product_out.favorited = dict_favorited[product_out.id]
+    if product_out.id in dict_favorite:
+        product_out.favorited = dict_favorite[product_out.id]
     else:
         product_out.favorited = False
     return product_out
 
 
-@router.post("/products/update-product", response_model=ProductOut)
+@router.put("/products/{product_id}", response_model=ProductOut)
 async def update_one_product(current_user: UserDb = Depends(get_current_active_user),
+                             product_id: str = Path(..., title="Product id"),
                              req: RequestUpdateProduct = Body(..., title="Product"),
                              conn: AsyncIOMotorClient = Depends(get_database)):
     if not is_valid_oid(oid=req.category_id):
@@ -120,35 +118,48 @@ async def update_one_product(current_user: UserDb = Depends(get_current_active_u
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid category id.",
         )
-    if not is_valid_oid(oid=req.product_id):
+    if not is_valid_oid(oid=product_id):
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid product id.",
         )
-    exists_product: bool = await exists_product_by_id_impl(user_id=current_user.id, product_id=req.product_id,
-                                                           conn=conn)
+    exists_product: bool = await exists_product_by_id_impl(
+        user_id=current_user.id,
+        product_id=product_id,
+        conn=conn)
     if not exists_product:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid product id.",
         )
-    exists_category: bool = await exists_category_by_id_impl(category_id=req.category_id, conn=conn)
+    exists_category: bool = await exists_category_by_id_impl(
+        category_id=req.category_id,
+        conn=conn)
     if not exists_category:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid category id.",
         )
-    exists_subcategory: bool = await exists_sub_category_by_id_impl(category_id=req.category_id,
-                                                                    sub_category_id=req.sub_category_id, conn=conn)
+    exists_subcategory: bool = await exists_sub_category_by_id_impl(
+        category_id=req.category_id,
+        sub_category_id=req.sub_category_id,
+        conn=conn)
     if not exists_subcategory:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid sub-category id.",
         )
-    category_out: CategoryOut = await get_category_by_id_impl(category_id=req.category_id, conn=conn)
-    sub_category_out: SubCategoryOut = await get_sub_category_by_id_impl(category_id=req.category_id,
-                                                                         sub_category_id=req.sub_category_id, conn=conn)
-    product_db: ProductDb = await get_product_by_id_impl(user_id=current_user.id, product_id=req.product_id, conn=conn)
+    category_out: CategoryOut = await get_category_by_id_impl(
+        category_id=req.category_id,
+        conn=conn)
+    sub_category_out: SubCategoryOut = await get_sub_category_by_id_impl(
+        category_id=req.category_id,
+        sub_category_id=req.sub_category_id,
+        conn=conn)
+    product_db: ProductDb = await get_product_by_id_impl(
+        user_id=current_user.id,
+        product_id=product_id,
+        conn=conn)
     product_db.name = req.name
     product_db.description = req.description
     product_db.category_id = req.category_id
@@ -158,10 +169,16 @@ async def update_one_product(current_user: UserDb = Depends(get_current_active_u
     product_db.isNew = req.isNew
     product_db.currency = req.currency
     product_db.location = current_user.shop.location
-    product_db : ProductDb = await update_complete_product_by_id(user_id=current_user.id, product_id=req.product_id,
-                                               product_in=ProductIn(**product_db.dict()), conn=conn)
+    product_db : ProductDb = await update_complete_product_by_id(
+        user_id=current_user.id,
+        product_id=product_id,
+        product_in=ProductIn(**product_db.dict()),
+        conn=conn)
     products_ids: List[str] = [product_db.id]
-    dict_favorited: Dict = await get_user_products_favorited_in_array(user_id=current_user.id, products_ids=products_ids,conn=conn)
+    dict_favorited: Dict = await get_user_products_favorited_in_array(
+        user_id=current_user.id,
+        products_ids=products_ids,
+        conn=conn)
     product_out: ProductOut = ProductOut(**product_db.dict())
     if product_out.id in dict_favorited:
         product_out.favorited = dict_favorited[product_out.id]
@@ -170,29 +187,29 @@ async def update_one_product(current_user: UserDb = Depends(get_current_active_u
     return product_out
 
 
-@router.post("/products/remove-product")
+@router.delete("/products/{product_id}")
 async def remove_product(current_user: UserDb = Depends(get_current_active_user),
-                         req: RequestRemoveProduct = Body(..., title="Product"),
+                         product_id: str = Path(..., title="Product id"),
                          conn: AsyncIOMotorClient = Depends(get_database)):
-    if not is_valid_oid(oid=req.product_id):
+    if not is_valid_oid(oid=product_id):
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid product id.",
         )
-    exists_product: bool = await exists_product_by_id_impl(user_id=current_user.id, product_id=req.product_id,
+    exists_product: bool = await exists_product_by_id_impl(user_id=current_user.id, product_id=product_id,
                                                            conn=conn)
     if not exists_product:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid product id.",
         )
-    await remove_product_by_id_impl(user_id=current_user.id, product_id=req.product_id, conn=conn)
+    await remove_product_by_id_impl(user_id=current_user.id, product_id=product_id, conn=conn)
     return {"success": True}
 
 
-@router.post("/products/add-image-to-product", response_model=ProductOut)
+@router.post("/products/{product_id}/images", response_model=ProductOut)
 async def add_image_to_product(current_user: UserDb = Depends(get_current_active_user),
-                               product_id: str = Body(..., title="Product"),
+                               product_id: str = Path(..., title="Product id"),
                                file: UploadFile = File(...),
                                conn: AsyncIOMotorClient = Depends(get_database)):
     if not is_valid_oid(oid=product_id):
@@ -263,33 +280,43 @@ async def add_image_to_product(current_user: UserDb = Depends(get_current_active
     return product_out
 
 
-@router.post("/products/remove-image-from-product", response_model=ProductOut)
+@router.delete("/products/{product_id}/images/{image_id}", response_model=ProductOut)
 async def remove_image_from_product(current_user: UserDb = Depends(get_current_active_user),
-                                    req: RequestRemoveImageFromProduct = Body(..., title="Image"),
+                                    product_id: str = Path(..., title="Product id"),
+                                    image_id: str = Path(..., title="Image id"),
                                     conn: AsyncIOMotorClient = Depends(get_database)):
-    if not is_valid_oid(oid=req.product_id):
+    if not is_valid_oid(oid=product_id):
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid product id.",
         )
-    exists_image: bool = await exists_image_in_product_impl(user_id=current_user.id, product_id=req.product_id,
-                                                            image_id=req.image_id, conn=conn)
+    exists_image: bool = await exists_image_in_product_impl(
+        user_id=current_user.id, product_id=product_id,
+        image_id=image_id,
+        conn=conn)
     if not exists_image:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid image id.",
         )
-    exists_product: bool = await exists_product_by_id_impl(user_id=current_user.id, product_id=req.product_id,
-                                                           conn=conn)
+    exists_product: bool = await exists_product_by_id_impl(
+        user_id=current_user.id,
+        product_id=product_id,
+        conn=conn)
     if not exists_product:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid product id.",
         )
-    product_db: ProductDb = await remove_image_from_product_impl(user_id=current_user.id, product_id=req.product_id,
-                                                                 image_id=req.image_id, conn=conn)
+    product_db: ProductDb = await remove_image_from_product_impl(
+        user_id=current_user.id,
+        product_id=product_id,
+        image_id=image_id, conn=conn)
     products_ids: List[str] = [product_db.id]
-    dict_favorited: Dict = await get_user_products_favorited_in_array(user_id=current_user.id, products_ids=products_ids, conn=conn)
+    dict_favorited: Dict = await get_user_products_favorited_in_array(
+        user_id=current_user.id,
+        products_ids=products_ids,
+        conn=conn)
     product_out: ProductOut = ProductOut(**product_db.dict())
     if product_out.id in dict_favorited:
         product_out.favorited = dict_favorited[product_out.id]
@@ -298,8 +325,8 @@ async def remove_image_from_product(current_user: UserDb = Depends(get_current_a
     return product_out
 
 
-@router.post("/products/search-products-pagination-params", response_model=PaginationParams)
-async def search_products_pagination_params(current_user: UserDb = Depends(get_current_active_user),
+@router.get("/products/pagination-params", response_model=PaginationParams)
+async def list_products_pagination_params(current_user: UserDb = Depends(get_current_active_user),
                                             filter: RequestSearchProducts = Body(..., title="Filter"),
                                             request_pagination_params: RequestPaginationParams = Body(...,title="Pagination params"),
                                             conn: AsyncIOMotorClient = Depends(get_database)):
@@ -320,8 +347,8 @@ async def search_products_pagination_params(current_user: UserDb = Depends(get_c
     return await search_products_pagination_params_impl(user_id=current_user.id, filter=filter, request_pagination_params=request_pagination_params, conn=conn)
 
 
-@router.post("/products/search-products", response_model=List[ProductOut])
-async def search_products(current_user: UserDb = Depends(get_current_active_user),
+@router.get("/products", response_model=List[ProductOut])
+async def list_products(current_user: UserDb = Depends(get_current_active_user),
                           filter: RequestSearchProducts = Body(None, title="Filter"),
                           pagination: RequestPagination = Body(..., title="Pagination"),
                           conn: AsyncIOMotorClient = Depends(get_database)):
@@ -339,40 +366,37 @@ async def search_products(current_user: UserDb = Depends(get_current_active_user
                     status_code=HTTP_400_BAD_REQUEST,
                     detail="Invalid category id.",
                 )
-    return await search_products_impl(user_id = current_user.id,filter=filter,pagination=pagination, conn=conn)
+    return await search_products_impl(
+        user_id=current_user.id,
+        filter=filter,
+        pagination=pagination,
+        conn=conn)
 
 
-@router.post("/products/search-own-products-pagination-params", response_model=PaginationParams)
-async def search_own_products_pagination_params(current_user: UserDb = Depends(get_current_active_user),
-                                                pagination_params: RequestPaginationParams = Body(...,title="Pagination params"),
-                                                conn: AsyncIOMotorClient = Depends(get_database)):
-    return await search_own_products_pagination_params_impl(user_id=current_user.id,
-                                                            request_pagination_params=pagination_params, conn=conn)
-
-
-@router.post("/products/search-own-products", response_model=List[ProductOut])
-async def search_own_products(current_user: UserDb = Depends(get_current_active_user),
-                              pagination: RequestPagination = Body(..., title="Pagination"),
-                              conn: AsyncIOMotorClient = Depends(get_database)):
-    return await search_own_products_impl(user_id=current_user.id, pagination=pagination, conn=conn)
-
-
-@router.post("/products/set-product-favorited", response_model=ProductFavoritedOut)
-async def set_product_favorited(current_user: UserDb = Depends(get_current_active_user),
-                              req: RequestSetProductFavorited = Body(..., title="Favorited"),
-                              conn: AsyncIOMotorClient = Depends(get_database)):
-    if not is_valid_oid(oid=req.product_id):
+@router.put("/products/{product_id}/favorited", response_model=ProductFavoritedOut)
+async def set_product_favorited(
+        current_user: UserDb = Depends(get_current_active_user),
+        product_id: str = Path(..., title="Product id"),
+        favorited: bool = Path(..., title="Favorited"),
+        conn: AsyncIOMotorClient = Depends(get_database)):
+    if not is_valid_oid(oid=product_id):
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid product id.",
         )
-    exists_product: bool = await exists_product_by_id_impl(user_id=current_user.id, product_id=req.product_id, conn=conn)
+    exists_product: bool = await exists_product_by_id_impl(
+        user_id=current_user.id,
+        product_id=product_id,
+        conn=conn)
     if not exists_product:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid product id.",
         )
     product_favorited_in: ProductFavoritedIn = ProductFavoritedIn()
-    product_favorited_in.product_id = req.product_id
+    product_favorited_in.product_id = product_id
     product_favorited_in.user_id = current_user.id
-    return await set_product_favorited_impl(product_favorited=product_favorited_in,conn=conn)
+    product_favorited_in.favorited= favorited
+    return await set_product_favorited_impl(
+        product_favorited=product_favorited_in,
+        conn=conn)

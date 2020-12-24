@@ -86,36 +86,6 @@ async def exists_image_in_product_impl(user_id: str, product_id: str, image_id: 
     return False
 
 
-async def search_own_products_pagination_params_impl(request_pagination_params: RequestPaginationParams, user_id: str,
-                                                     conn: AsyncIOMotorClient) -> PaginationParams:
-    and_array = [{"user_id": user_id}]
-    query = {'$and': and_array}
-    count: float = await conn[dtododb_database_name][products_collection_name].count_documents(query)
-    pages: int = 0
-    elements: float = request_pagination_params.elements
-    if count > 0 and elements > 0:
-        pages = math.ceil(count / elements)
-    pagination_params: PaginationParams = PaginationParams()
-    pagination_params.elements = request_pagination_params.elements
-    pagination_params.total = count
-    pagination_params.pages = pages
-    return pagination_params
-
-
-async def search_own_products_impl(user_id: str, pagination: RequestPagination, conn: AsyncIOMotorClient) -> List[
-    ProductOut]:
-    resp: List[ProductOut] = []
-    and_array = [{"user_id": user_id}]
-    query = {'$and': and_array}
-    rows = conn[dtododb_database_name][products_collection_name].find(query).sort("created", pymongo.DESCENDING).skip(
-        (pagination.page - 1) * pagination.elements).limit(pagination.elements)
-    async for row in rows:
-        product_own: ProductOut = ProductOut(**row)
-        product_own.id = str(row['_id'])
-        resp.append(product_own)
-    return resp
-
-
 async def exists_product_favorited_impl(user_id: str, product_id: str, conn: AsyncIOMotorClient) -> bool:
     query = {"product_id": product_id, "user_id": user_id}
     count: int = await conn[dtododb_database_name][product_favorites_collection_name].count_documents(query)
@@ -167,6 +137,9 @@ async def search_products_pagination_params_impl(request_pagination_params: Requ
         if filter.province_id is not None:
             and_array.append({"province_id": filter.province_id})
             and_enabled = True
+        if filter.own is not None and filter.own:
+            and_array.append({"user_id": user_id})
+            and_enabled = True
         if filter.category_id is not None:
             and_array.append({"category_id": filter.category_id})
             and_enabled = True
@@ -212,6 +185,9 @@ async def search_products_impl(user_id: str, pagination: RequestPagination, filt
     if filter is not None:
         if filter.province_id is not None:
             and_array.append({"province_id": filter.province_id})
+            and_enabled = True
+        if filter.own is not None and filter.own:
+            and_array.append({"user_id": user_id})
             and_enabled = True
         if filter.category_id is not None:
             and_array.append({"category_id": filter.category_id})

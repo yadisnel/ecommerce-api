@@ -14,6 +14,7 @@ class ShopIn(RwModel):
 
 
 class ShopOut(RwModel):
+    id: str = None
     name: str = None
     images: List[Image] = None
     location: Location = None
@@ -22,6 +23,7 @@ class ShopOut(RwModel):
 
 
 class ShopDb(RwModel):
+    id: str = None
     name: str = None
     images: List[Image] = None
     location: Location = None

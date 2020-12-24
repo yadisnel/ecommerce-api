@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Path
 from fastapi import Body, HTTPException
 from fastapi import Depends
 from starlette.status import HTTP_400_BAD_REQUEST
@@ -14,12 +14,12 @@ from src.app.models.conversation import ConversationOut, ConversationIn
 from src.app.models.message import MessageIn
 from src.app.models.user import UserDb
 from src.app.routers.users import get_current_active_user
-from src.app.validations.messages import RequestSendMessage, RequestRemoveMessage
+from src.app.validations.messages import RequestSendMessage
 
 router = APIRouter()
 
 
-@router.post("/messages/send-message")
+@router.post("/chat/messages/")
 async def send_chat_message(req: RequestSendMessage = Body(..., title="Message"),
                             current_user: UserDb = Depends(get_current_active_user),
                             conn: AsyncIOMotorClient = Depends(get_database)):
@@ -84,8 +84,10 @@ async def send_chat_message(req: RequestSendMessage = Body(..., title="Message")
     return {"success": True}
 
 
-@router.post("/messages/remove-message")
-async def remove_chat_message(req: RequestRemoveMessage, current_user: UserDb = Depends(get_current_active_user),
-                              conn: AsyncIOMotorClient = Depends(get_database)):
+@router.delete("/messages/{message_id}")
+async def remove_chat_message(
+        message_id: str = Path(..., title="Message's id"),
+        current_user: UserDb = Depends(get_current_active_user),
+        conn: AsyncIOMotorClient = Depends(get_database)):
     # TODO Implement it
     return None

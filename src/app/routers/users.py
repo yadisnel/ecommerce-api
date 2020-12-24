@@ -206,14 +206,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": encoded_jwt, "token_type": token_type}
 
 
-@router.post("/users/info", response_model=UserOut)
+@router.get("/users/info", response_model=UserOut)
 async def get_user_information(current_user: UserDb = Depends(get_current_active_user)):
     user_out: UserOut = UserOut(**current_user.dict())
     return user_out
 
 
-@router.post("/users/update-avatar", response_model=UserOut)
-async def update_user_avatar(current_user: UserDb = Depends(get_current_active_user),
+@router.put("/users", response_model=UserOut)
+async def update_user(current_user: UserDb = Depends(get_current_active_user),
                                file: UploadFile = File(...),
                                conn: AsyncIOMotorClient = Depends(get_database)):
     filename_original = str(uuid.UUID(bytes=os.urandom(16), version=4)) + "_original_.png"
@@ -260,7 +260,7 @@ async def update_user_avatar(current_user: UserDb = Depends(get_current_active_u
     return user_out
 
 
-@router.post("/users/mqtt/auth-user")
+@router.post("/users/real-time/auth-user")
 async def emqx_auth_http_user(request: Request, conn: AsyncIOMotorClient = Depends(get_database)):
     credentials_exception = HTTPException(
         status_code=HTTP_401_UNAUTHORIZED,
@@ -295,7 +295,7 @@ async def emqx_auth_http_user(request: Request, conn: AsyncIOMotorClient = Depen
         raise credentials_exception
 
 
-@router.post("/users/mqtt/auth-admin")
+@router.post("/users/real-time/auth-admin")
 async def emqx_auth_http_admin(request: Request, conn: AsyncIOMotorClient = Depends(get_database)):
     credentials_exception = HTTPException(
         status_code=HTTP_401_UNAUTHORIZED,
@@ -332,7 +332,7 @@ async def emqx_auth_http_admin(request: Request, conn: AsyncIOMotorClient = Depe
         raise credentials_exception
 
 
-@router.post("/users/mqtt/auth-acl")
+@router.post("/users/real-time/auth-acl")
 async def emqx_auth_http_acl(request: Request, conn: AsyncIOMotorClient = Depends(get_database)):
     credentials_exception = HTTPException(
         status_code=HTTP_401_UNAUTHORIZED,
@@ -378,10 +378,3 @@ async def emqx_auth_http_acl(request: Request, conn: AsyncIOMotorClient = Depend
         return {"success": True}
     except PyJWTError:
         raise credentials_exception
-
-
-@router.post("/test/")
-async def create_upload_files(request: Request):
-    payload = await request.body()
-    print(payload)
-    return {"success": True}

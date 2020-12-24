@@ -37,7 +37,7 @@
       "memoryReservation": 512,
       "volumesFrom": [],
       "stopTimeout": null,
-      "image": "nginx:latest",
+      "image": "ecommerce-api:latest",
       "startTimeout": null,
       "firelensConfiguration": null,
       "dependsOn": null,
@@ -54,13 +54,13 @@
       "dockerLabels": null,
       "systemControls": null,
       "privileged": null,
-      "name": "api"
+      "name": "ecommerce-api"
     }
   ],
   "placementConstraints": [],
   "memory": "512",
   "taskRoleArn": null,
-  "family": "first-run-task-definition",
+  "family": "ecommerce-api-run-task-definition",
   "pidMode": null,
   "requiresCompatibilities": [
     "FARGATE"

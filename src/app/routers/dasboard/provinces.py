@@ -1,7 +1,7 @@
 from typing import List
 
 from fastapi import Body, HTTPException
-from fastapi import Depends
+from fastapi import Depends, Path
 from starlette.status import HTTP_409_CONFLICT, HTTP_400_BAD_REQUEST
 
 from src.app.core.generics import is_valid_oid
@@ -13,11 +13,11 @@ from src.app.models.province import ProvinceIn, ProvinceOut
 from src.app.models.user import UserDb
 from src.app.routers.dasboard.dashboard import router
 from src.app.routers.users import get_current_active_admin_user
-from src.app.validations.provinces import RequestAddProvince,RequestUpdateProvince, RequestRemoveProvince
+from src.app.validations.provinces import RequestAddProvince,RequestUpdateProvince
 from datetime import datetime
 
 
-@router.post("/dashboard/provinces/add-province", response_model=ProvinceOut)
+@router.post("/dashboard/provinces/", response_model=ProvinceOut)
 async def add_province(current_user: UserDb = Depends(get_current_active_admin_user),
                        req: RequestAddProvince = Body(..., title="Province"),
                        conn: AsyncIOMotorClient = Depends(get_database)):
@@ -37,44 +37,45 @@ async def add_province(current_user: UserDb = Depends(get_current_active_admin_u
     return await add_province_impl(province_in=province_in, conn=conn)
 
 
-@router.post("/dashboard/provinces/remove-province", response_model=ProvinceOut)
+@router.delete("/dashboard/provinces/{province_id}", response_model=ProvinceOut)
 async def remove_province(current_user: UserDb = Depends(get_current_active_admin_user),
-                          req: RequestRemoveProvince = Body(..., title="Category"),
+                          province_id: str = Path(..., title="Province's id"),
                           conn: AsyncIOMotorClient = Depends(get_database)):
-    if not is_valid_oid(oid=req.province_id):
+    if not is_valid_oid(oid=province_id):
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid category id.",
         )
-    exists_province: bool = await exists_province_by_id_impl(province_id=req.province_id, conn=conn)
+    exists_province: bool = await exists_province_by_id_impl(province_id=province_id, conn=conn)
     if not exists_province:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Province does not exist.",
         )
-    await remove_province_by_id_impl(province_id=req.province_id, conn=conn)
+    await remove_province_by_id_impl(province_id=province_id, conn=conn)
     return {"success": True}
 
 
-@router.post("/dashboard/provinces/update-province", response_model=ProvinceOut)
+@router.put("/dashboard/provinces/{province_id}", response_model=ProvinceOut)
 async def update_province(current_user: UserDb = Depends(get_current_active_admin_user),
+                          province_id: str = Path(..., title="Province's id"),
                           req: RequestUpdateProvince = Body(..., title="Province"),
                           conn: AsyncIOMotorClient = Depends(get_database)):
-    if not is_valid_oid(oid=req.province_id):
+    if not is_valid_oid(oid=province_id):
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid category id.",
         )
-    exists_province: bool = await exists_province_by_id_impl(province_id=req.province_id, conn=conn)
+    exists_province: bool = await exists_province_by_id_impl(province_id=province_id, conn=conn)
     if not exists_province:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Province does not exist.",
         )
-    return await update_province_name_impl(province_id=req.province_id,name=req.name,order = req.order, conn=conn)
+    return await update_province_name_impl(province_id=province_id,name=req.name,order = req.order, conn=conn)
 
 
-@router.post("/dashboard/provinces/get-all-provinces", response_model=List[ProvinceOut])
-async def get_all_provinces(current_user: UserDb = Depends(get_current_active_admin_user),
+@router.get("/dashboard/provinces/", response_model=List[ProvinceOut])
+async def list_provinces(current_user: UserDb = Depends(get_current_active_admin_user),
                             conn: AsyncIOMotorClient = Depends(get_database)):
     return await get_all_provinces_impl(conn=conn)

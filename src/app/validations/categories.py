@@ -8,15 +8,5 @@ class RequestAddCategory(RwModel):
     name: str = Field(..., title="Category's name")
 
 
-class RequestRemoveCategory(RwModel):
-    category_id: str = Field(..., title="Category's id")
-
-
 class RequestAddSubCategory(RwModel):
-    category_id: str = Field(..., title="Category's id")
     name: str = Field(..., title="Sub-category's name")
-
-
-class RequestRemoveSubCategory(RwModel):
-    category_id: str = Field(..., title="Category's id")
-    sub_category_id: str = Field(..., title="sub category's id")

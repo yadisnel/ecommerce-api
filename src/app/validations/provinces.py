@@ -10,12 +10,7 @@ class RequestAddProvince(RwModel):
     order: int = Field(..., title="Province's order", ge=0)
 
 
-class RequestRemoveProvince(RwModel):
-    province_id: str = Field(..., title="Province's id")
-
-
 class RequestUpdateProvince(RwModel):
-    province_id: str = Field(..., title="Province's id")
     name: str = Field(..., title="Province's name")
     order: int = Field(..., title="Province's order", ge=0)
 
