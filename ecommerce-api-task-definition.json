@@ -9,7 +9,7 @@
         "logDriver": "awslogs",
         "secretOptions": null,
         "options": {
-          "awslogs-group": "/ecs/first-run-task-definition",
+          "awslogs-group": "/ecs/ecommerce-api-task-definition",
           "awslogs-region": "eu-central-1",
           "awslogs-stream-prefix": "ecs"
         }
@@ -60,7 +60,7 @@
   "placementConstraints": [],
   "memory": "512",
   "taskRoleArn": null,
-  "family": "ecommerce-api-run-task-definition",
+  "family": "ecommerce-api-task-definition",
   "pidMode": null,
   "requiresCompatibilities": [
     "FARGATE"
