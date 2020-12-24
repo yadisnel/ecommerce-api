@@ -18,7 +18,7 @@ async def shutdown():
     await close_broker_cnx()
 
 
-app = FastAPI(title="E-Commerce Platform API", version="0.1")
+app = FastAPI(title="E-Commerce Platform API", version="v1.0-beta.1")
 app.include_router(users.router, tags=["users"])
 app.include_router(products.router, tags=["products"])
 app.include_router(shops.router, tags=["shops"])
