@@ -11,7 +11,7 @@ from crud.provinces import get_all_provinces_impl, update_province_name_impl
 from core.mongodb import AsyncIOMotorClient, get_database
 from models.province import ProvinceIn, ProvinceOut
 from models.user import UserDb
-from routers.provinces import router
+from routers.dasboard.dashboard import router
 from routers.users import get_current_active_admin_user
 from validations.provinces import RequestAddProvince,RequestUpdateProvince
 from datetime import datetime

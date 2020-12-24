@@ -10,7 +10,7 @@ from crud.categories import remove_sub_category_impl, exists_sub_category_by_id_
 from core.mongodb import AsyncIOMotorClient, get_database
 from models.category import CategoryIn, CategoryOut, SubCategoryIn
 from models.user import UserDb
-from routers.categories import router
+from routers.dasboard.dashboard import router
 from routers.users import get_current_active_admin_user
 from validations.categories import RequestAddCategory, RequestAddSubCategory
 from crud.categories import get_all_categories_impl
