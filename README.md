@@ -1,2 +1,1 @@
-# ecommerce-api
-ecommerce api
+# E-Commerce Platform API

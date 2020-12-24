@@ -1,0 +1,9 @@
+#copy to /etc/nginx/sites-enabled
+server {
+    server_name api.yadisnel.com;
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/home/admin/api/api.sock;
+    }
+}
