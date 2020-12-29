@@ -8,7 +8,7 @@ from starlette.testclient import TestClient
 from core import min_conections_count, test_facebook_user_id
 from core import db_url, max_connections_count, test_facebook_user_token
 from app import app
-from routers.users import get_database
+from routers.accounts import get_database
 
 
 @pytest.fixture(scope="module")
@@ -27,10 +27,10 @@ def test_authorization_header(test_app) -> str:
 
 
 @pytest.fixture(scope="module")
-def test_provinces_list(test_app: TestClient, test_authorization_header) -> List:
-    response = test_app.post(url="/provinces/get-all-provinces", headers={"Authorization": test_authorization_header})
+def test_zones_list(test_app: TestClient, test_authorization_header) -> List:
+    response = test_app.get(url="/zones/", headers={"Authorization": test_authorization_header})
     assert response.status_code == 200
-    provinces_dict = {"Pinar del Río":"Pinar del Río" ,
+    zones_dict = {"Pinar del Río":"Pinar del Río" ,
                       "Artemisa":"Artemisa",
                       "La Habana":"La Habana",
                       "Mayabeque": "Mayabeque",
@@ -48,12 +48,12 @@ def test_provinces_list(test_app: TestClient, test_authorization_header) -> List
                       "Isla de la Juventud":"Isla de la Juventud"}
     count: int = 0
     res_json = response.json()
-    provinces_checked = {}
-    for province in res_json:
+    zones_checked = {}
+    for zone in res_json:
         count = count +1
-        assert province['name'] in provinces_dict
-        assert province['name'] not in provinces_checked
-        provinces_checked[province['name']] = province['name']
+        assert zone['name'] in zones_dict
+        assert zone['name'] not in zones_checked
+        zones_checked[zone['name']] = zone['name']
     assert count == 16
     return res_json
 

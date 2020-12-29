@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import Field
 
-from models.rwmodel import RwModel
+from models.rwmodels import RwModel
 
 
 class RequestSync(RwModel):

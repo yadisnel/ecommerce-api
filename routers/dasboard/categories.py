@@ -8,10 +8,10 @@ from crud.categories import add_category_impl, add_sub_category_impl, remove_cat
 from crud.categories import exists_sub_category_by_name_impl, exists_category_by_name_impl, exists_category_by_id_impl
 from crud.categories import remove_sub_category_impl, exists_sub_category_by_id_impl
 from core.mongodb import AsyncIOMotorClient, get_database
-from models.category import CategoryIn, CategoryOut, SubCategoryIn
-from models.user import UserDb
+from models.categories import CategoryIn, CategoryOut, SubCategoryIn
+from models.accounts import AccountDb
 from routers.dasboard.dashboard import router
-from routers.users import get_current_active_admin_user
+from routers.accounts import get_current_active_admin_user
 from validations.categories import RequestAddCategory, RequestAddSubCategory
 from crud.categories import get_all_categories_impl
 import uuid
@@ -20,7 +20,7 @@ from datetime import datetime
 
 
 @router.post("/dashboard/categories/", response_model=CategoryOut)
-async def add_category(current_user: UserDb = Depends(get_current_active_admin_user),
+async def add_category(current_user: AccountDb = Depends(get_current_active_admin_user),
                        req: RequestAddCategory = Body(..., title="Category"),
                        conn: AsyncIOMotorClient = Depends(get_database)):
     exists_category: bool = await exists_category_by_name_impl(name=req.name, conn=conn)
@@ -41,7 +41,7 @@ async def add_category(current_user: UserDb = Depends(get_current_active_admin_u
 
 
 @router.delete("/dashboard/categories/{category_id}", response_model=CategoryOut)
-async def remove_category(current_user: UserDb = Depends(get_current_active_admin_user),
+async def remove_category(current_user: AccountDb = Depends(get_current_active_admin_user),
                           category_id: str = Path(..., title="Category id"),
                           conn: AsyncIOMotorClient = Depends(get_database)):
     if not is_valid_oid(oid=category_id):
@@ -59,7 +59,7 @@ async def remove_category(current_user: UserDb = Depends(get_current_active_admi
 
 
 @router.post("/dashboard/categories/{category_id}/sub-categories", response_model=CategoryOut)
-async def add_sub_category(current_user: UserDb = Depends(get_current_active_admin_user),
+async def add_sub_category(current_user: AccountDb = Depends(get_current_active_admin_user),
                            category_id: str = Path(..., title="Category id"),
                            req: RequestAddSubCategory = Body(..., title="Category"),
                            conn: AsyncIOMotorClient = Depends(get_database)):
@@ -88,7 +88,7 @@ async def add_sub_category(current_user: UserDb = Depends(get_current_active_adm
 
 
 @router.delete("/dashboard/categories/{category_id}/sub-categories/{sub_category_id}")
-async def remove_sub_category(current_user: UserDb = Depends(get_current_active_admin_user),
+async def remove_sub_category(current_user: AccountDb = Depends(get_current_active_admin_user),
                               category_id: str = Path(..., title="Category id"),
                               sub_category_id: str = Path(..., title="sub category id"),
                               conn: AsyncIOMotorClient = Depends(get_database)):
@@ -113,6 +113,6 @@ async def remove_sub_category(current_user: UserDb = Depends(get_current_active_
 
 
 @router.get("/dashboard/categories/", response_model=List[CategoryOut])
-async def list_categories(current_user: UserDb = Depends(get_current_active_admin_user),
-                             conn: AsyncIOMotorClient = Depends(get_database)):
+async def list_categories(current_user: AccountDb = Depends(get_current_active_admin_user),
+                          conn: AsyncIOMotorClient = Depends(get_database)):
     return await get_all_categories_impl(conn=conn)

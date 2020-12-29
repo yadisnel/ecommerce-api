@@ -1,16 +1,16 @@
 from typing import List
 
-from models.image import Image
-from models.location import Location
-from models.rwmodel import RwModel
+from models.images import Image
+from models.locations import Location
+from models.rwmodels import RwModel
 
 
 class ShopIn(RwModel):
     name: str = None
     images: List[Image] = None
     location: Location = None
-    province_id: str = None
-    province_name: str = None
+    zone_id: str = None
+    zone_name: str = None
 
 
 class ShopOut(RwModel):
@@ -18,8 +18,8 @@ class ShopOut(RwModel):
     name: str = None
     images: List[Image] = None
     location: Location = None
-    province_id: str = None
-    province_name: str = None
+    zone_id: str = None
+    zone_name: str = None
 
 
 class ShopDb(RwModel):
@@ -27,5 +27,5 @@ class ShopDb(RwModel):
     name: str = None
     images: List[Image] = None
     location: Location = None
-    province_id: str = None
-    province_name: str = None
+    zone_id: str = None
+    zone_name: str = None

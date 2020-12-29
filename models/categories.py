@@ -1,4 +1,4 @@
-from models.rwmodel import RwModel
+from models.rwmodels import RwModel
 from typing import List
 from datetime import datetime
 

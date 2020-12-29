@@ -1,11 +1,11 @@
 from datetime import datetime
 
-from models.rwmodel import RwModel
-from models.shop import ShopIn, ShopOut, ShopDb
-from models.image import Image
+from models.rwmodels import RwModel
+from models.shops import ShopIn, ShopOut, ShopDb
+from models.images import Image
 
 
-class UserOut(RwModel):
+class AccountOut(RwModel):
     id: str = None
     facebook_id: str = None
     name: str = None
@@ -19,7 +19,7 @@ class UserOut(RwModel):
     shop: ShopOut = None
 
 
-class UserIn(RwModel):
+class AccountIn(RwModel):
     facebook_id: str = None
     token: bytes = None
     name: str = None
@@ -33,7 +33,7 @@ class UserIn(RwModel):
     shop: ShopIn = None
 
 
-class UserDb(RwModel):
+class AccountDb(RwModel):
     id: str = None
     facebook_id: str = None
     token: bytes = None

@@ -1,2 +1,2 @@
 from .categories import *
-from .provinces import *
+from .zones import *

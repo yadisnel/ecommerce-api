@@ -4,8 +4,8 @@ from databases import DatabaseURL
 db_host: str = '127.0.0.1'
 # db_host: str = "api.yadisnel.com"
 db_port: int = 27017
-admin_user: str = "admin"
-admin_pass: str = "Dtinc**2019."
+admin_user: str = "boukker"
+admin_pass: str = "Boukker.123"
 db_user_db = "admin"
 db_url = DatabaseURL(
     f"mongodb://{admin_user}:{admin_pass}@{db_host}:{db_port}/{db_user_db}"
@@ -14,12 +14,12 @@ max_connections_count: int = 100
 min_conections_count: int = 10
 
 # Database collections
-dtododb_database_name = "dtododb"
-users_collection_name = "users"
+ecommerce_database_name = "ecommercedb"
+accounts_collection_name = "accounts"
 shops_collection_name = "shops"
 products_collection_name = "products"
 categories_collection_name = "categories"
-provinces_collection_name = "provinces"
+zones_collection_name = "zones"
 product_favorites_collection_name = "product_favorites"
 conversations_collection_name = "conversations"
 messges_collection_name = "messages"
@@ -45,7 +45,7 @@ url_users_images_on_s3_big: str = "users/big/"
 url_users_images_on_s3_thumb: str = "users/thumb/"
 
 # Payload types
-PAYLOAD_TYPE_PROVINCE: str = "PAYLOAD_TYPE_PROVINCE"
+PAYLOAD_TYPE_ZONE: str = "PAYLOAD_TYPE_ZONE"
 PAYLOAD_TYPE_PRODUCT: str = "PAYLOAD_TYPE_PRODUCT"
 PAYLOAD_TYPE_CATEGORY: str = "PAYLOAD_TYPE_CATEGORY"
 

@@ -1,6 +1,6 @@
 from pydantic import Field
 
-from models.rwmodel import RwModel
+from models.rwmodels import RwModel
 from typing import Dict
 
 

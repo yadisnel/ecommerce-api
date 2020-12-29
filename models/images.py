@@ -1,4 +1,4 @@
-from models.rwmodel import RwModel
+from models.rwmodels import RwModel
 
 
 class Image(RwModel):

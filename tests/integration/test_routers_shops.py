@@ -6,7 +6,7 @@ from typing import List
 import pytest
 from fastapi.testclient import TestClient
 from tests.conftest import root_path_tests
-from models.user import UserDb
+from models.accounts import AccountDb
 
 from main import app
 
@@ -14,14 +14,14 @@ client = TestClient(app)
 
 
 @pytest.mark.integration
-def test_update_shop(test_app: TestClient, test_provinces_list: List, test_authorization_header: str):
+def test_update_shop(test_app: TestClient, test_zones_list: List, test_authorization_header: str):
     shop_name: str = "Shop name: " + str(uuid.UUID(bytes=os.urandom(16), version=4))
-    province_index = random.randint(0, 15)
+    zone_index = random.randint(0, 15)
     lat: int = random.randint(-90, 90)
     long: int = random.randint(-180, 180)
     json_data = {
         "name": shop_name,
-        "province_id": test_provinces_list[province_index]['id'],
+        "zone_id": test_zones_list[zone_index]['id'],
         "location": {
             "lat": lat,
             "long": long
@@ -34,10 +34,10 @@ def test_update_shop(test_app: TestClient, test_provinces_list: List, test_autho
     assert "shop" in json_response
     assert "name" in json_response["shop"]
     assert json_response["shop"]["name"] == shop_name
-    assert "province_id" in json_response["shop"]
-    assert json_response["shop"]["province_id"] == test_provinces_list[province_index]['id']
-    assert "province_name" in json_response["shop"]
-    assert json_response["shop"]["province_name"] == test_provinces_list[province_index]['name']
+    assert "zone_id" in json_response["shop"]
+    assert json_response["shop"]["zone_id"] == test_zones_list[zone_index]['id']
+    assert "zone_name" in json_response["shop"]
+    assert json_response["shop"]["zone_name"] == test_zones_list[zone_index]['name']
     assert "location" in json_response["shop"]
     assert "coordinates" in json_response["shop"]["location"]
     assert len(json_response["shop"]["location"]["coordinates"]) == 2
@@ -57,7 +57,7 @@ def test_add_image_to_shop(test_app: TestClient, test_authorization_header: str)
         assert response.status_code == 200
         response = test_app.post(url="/users/info", headers={"Authorization": test_authorization_header})
         assert response.status_code == 200
-        user: UserDb = UserDb(**response.json())
+        user: AccountDb = AccountDb(**response.json())
         assert user is not None
         assert user.shop is not None
         assert user.shop.images is not None
@@ -79,7 +79,7 @@ def test_remove_image_from_shop(test_app: TestClient, test_authorization_header:
         assert response.status_code == 200
         response = test_app.post(url="/users/info", headers={"Authorization": test_authorization_header})
         assert response.status_code == 200
-        user: UserDb = UserDb(**response.json())
+        user: AccountDb = AccountDb(**response.json())
         assert user is not None
         assert user.shop is not None
         assert user.shop.images is not None
@@ -91,7 +91,7 @@ def test_remove_image_from_shop(test_app: TestClient, test_authorization_header:
         assert response.status_code == 200
         response = test_app.post(url="/users/info", headers={"Authorization": test_authorization_header})
         assert response.status_code == 200
-        user: UserDb = UserDb(**response.json())
+        user: AccountDb = AccountDb(**response.json())
         assert user is not None
         assert user.shop is not None
         assert user.shop.images is not None
@@ -114,7 +114,7 @@ def test_clear_all_shop_images(test_app: TestClient, test_authorization_header):
         assert response.status_code == 200
         response = test_app.post(url="/users/info", headers={"Authorization": test_authorization_header})
         assert response.status_code == 200
-        user: UserDb = UserDb(**response.json())
+        user: AccountDb = AccountDb(**response.json())
         assert user is not None
         assert user.shop is not None
         assert user.shop.images is not None
@@ -123,7 +123,7 @@ def test_clear_all_shop_images(test_app: TestClient, test_authorization_header):
         assert response.status_code == 200
         response = test_app.post(url="/users/info", headers={"Authorization": test_authorization_header})
         assert response.status_code == 200
-        user: UserDb = UserDb(**response.json())
+        user: AccountDb = AccountDb(**response.json())
         assert user is not None
         assert user.shop is not None
         assert user.shop.images is not None

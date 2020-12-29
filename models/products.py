@@ -1,7 +1,7 @@
-from models.rwmodel import RwModel
+from models.rwmodels import RwModel
 from typing import List
-from models.image import Image
-from models.location import Location
+from models.images import Image
+from models.locations import Location
 from datetime import datetime
 
 
@@ -14,8 +14,8 @@ class ProductIn(RwModel):
     category_name: str = None
     sub_category_id: str = None
     sub_category_name: str = None
-    province_id: str = None
-    province_name: str = None
+    zone_id: str = None
+    zone_name: str = None
     price: float = None
     images: List[Image] = None
     isNew: bool = None
@@ -40,8 +40,8 @@ class ProductDb(RwModel):
     category_name: str = None
     sub_category_id: str = None
     sub_category_name: str = None
-    province_id: str = None
-    province_name: str = None
+    zone_id: str = None
+    zone_name: str = None
     price: float = None
     images: List[Image] = None
     isNew: bool = None
@@ -66,8 +66,8 @@ class ProductOut(RwModel):
     category_name: str = None
     sub_category_id: str = None
     sub_category_name: str = None
-    province_id: str = None
-    province_name: str = None
+    zone_id: str = None
+    zone_name: str = None
     price: float = None
     images: List[Image] = None
     isNew: bool = None

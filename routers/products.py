@@ -30,15 +30,15 @@ from crud.products import search_products_impl
 from crud.products import search_products_pagination_params_impl
 from crud.products import set_product_favorited_impl, get_user_products_favorited_in_array
 from crud.products import update_complete_product_by_id
-from crud.provinces import get_province_by_id_impl
-from models.category import CategoryOut
-from models.category import SubCategoryOut
-from models.image import Image
+from crud.zones import get_zone_by_id_impl
+from models.categories import CategoryOut
+from models.categories import SubCategoryOut
+from models.images import Image
 from models.pagination_params import PaginationParams
-from models.product import ProductIn, ProductDb, ProductOut, ProductFavoritedIn, ProductFavoritedOut
-from models.province import ProvinceOut
-from models.user import UserDb
-from routers.users import get_current_active_user
+from models.products import ProductIn, ProductDb, ProductOut, ProductFavoritedIn, ProductFavoritedOut
+from models.zones import ZoneOut
+from models.accounts import AccountDb
+from routers.accounts import get_current_active_user
 from validations.paginations import RequestPagination, RequestPaginationParams
 from validations.products import RequestAddProduct, RequestUpdateProduct
 from validations.products import RequestSearchProducts
@@ -47,10 +47,10 @@ router = APIRouter()
 
 
 @router.post("/products/", response_model=ProductOut)
-async def add_one_product(current_user: UserDb = Depends(get_current_active_user),
+async def add_one_product(current_user: AccountDb = Depends(get_current_active_user),
                           req: RequestAddProduct = Body(..., title="Product"),
                           conn: AsyncIOMotorClient = Depends(get_database)):
-    if current_user.shop.province_id is None:
+    if current_user.shop.zone_id is None:
         raise HTTPException(
             status_code=HTTP_412_PRECONDITION_FAILED,
             detail="Shop creation is incomplete.",
@@ -74,7 +74,7 @@ async def add_one_product(current_user: UserDb = Depends(get_current_active_user
         )
     category_out: CategoryOut = await get_category_by_id_impl(category_id=req.category_id, conn=conn)
     sub_category_out: SubCategoryOut = await get_sub_category_by_id_impl(category_id=req.category_id,sub_category_id=req.sub_category_id, conn=conn)
-    province_out: ProvinceOut = await get_province_by_id_impl(province_id=current_user.shop.province_id, conn=conn)
+    zone_out: ZoneOut = await get_zone_by_id_impl(zone_id=current_user.shop.zone_id, conn=conn)
     product_in: ProductIn = ProductIn()
     product_in.local_id = req.local_id
     product_in.user_id = current_user.id
@@ -84,8 +84,8 @@ async def add_one_product(current_user: UserDb = Depends(get_current_active_user
     product_in.category_name = category_out.name
     product_in.sub_category_id = req.sub_category_id
     product_in.sub_category_name = sub_category_out.name
-    product_in.province_id = province_out.id
-    product_in.province_name = province_out.name
+    product_in.zone_id = zone_out.id
+    product_in.zone_name = zone_out.name
     product_in.price = req.price
     product_in.isNew = req.isNew
     product_in.currency = req.currency
@@ -109,7 +109,7 @@ async def add_one_product(current_user: UserDb = Depends(get_current_active_user
 
 
 @router.put("/products/{product_id}", response_model=ProductOut)
-async def update_one_product(current_user: UserDb = Depends(get_current_active_user),
+async def update_one_product(current_user: AccountDb = Depends(get_current_active_user),
                              product_id: str = Path(..., title="Product id"),
                              req: RequestUpdateProduct = Body(..., title="Product"),
                              conn: AsyncIOMotorClient = Depends(get_database)):
@@ -188,7 +188,7 @@ async def update_one_product(current_user: UserDb = Depends(get_current_active_u
 
 
 @router.delete("/products/{product_id}")
-async def remove_product(current_user: UserDb = Depends(get_current_active_user),
+async def remove_product(current_user: AccountDb = Depends(get_current_active_user),
                          product_id: str = Path(..., title="Product id"),
                          conn: AsyncIOMotorClient = Depends(get_database)):
     if not is_valid_oid(oid=product_id):
@@ -208,7 +208,7 @@ async def remove_product(current_user: UserDb = Depends(get_current_active_user)
 
 
 @router.post("/products/{product_id}/images", response_model=ProductOut)
-async def add_image_to_product(current_user: UserDb = Depends(get_current_active_user),
+async def add_image_to_product(current_user: AccountDb = Depends(get_current_active_user),
                                product_id: str = Path(..., title="Product id"),
                                file: UploadFile = File(...),
                                conn: AsyncIOMotorClient = Depends(get_database)):
@@ -281,7 +281,7 @@ async def add_image_to_product(current_user: UserDb = Depends(get_current_active
 
 
 @router.delete("/products/{product_id}/images/{image_id}", response_model=ProductOut)
-async def remove_image_from_product(current_user: UserDb = Depends(get_current_active_user),
+async def remove_image_from_product(current_user: AccountDb = Depends(get_current_active_user),
                                     product_id: str = Path(..., title="Product id"),
                                     image_id: str = Path(..., title="Image id"),
                                     conn: AsyncIOMotorClient = Depends(get_database)):
@@ -326,16 +326,16 @@ async def remove_image_from_product(current_user: UserDb = Depends(get_current_a
 
 
 @router.get("/products/pagination-params", response_model=PaginationParams)
-async def list_products_pagination_params(current_user: UserDb = Depends(get_current_active_user),
-                                            filter: RequestSearchProducts = Body(..., title="Filter"),
-                                            request_pagination_params: RequestPaginationParams = Body(...,title="Pagination params"),
-                                            conn: AsyncIOMotorClient = Depends(get_database)):
+async def list_products_pagination_params(current_user: AccountDb = Depends(get_current_active_user),
+                                          filter: RequestSearchProducts = Body(..., title="Filter"),
+                                          request_pagination_params: RequestPaginationParams = Body(...,title="Pagination params"),
+                                          conn: AsyncIOMotorClient = Depends(get_database)):
     if filter is not None:
-        if filter.province_id is not None:
-            if not is_valid_oid(oid=filter.province_id):
+        if filter.zone_id is not None:
+            if not is_valid_oid(oid=filter.zone_id):
                 raise HTTPException(
                     status_code=HTTP_400_BAD_REQUEST,
-                    detail="Invalid province id.",
+                    detail="Invalid zone id.",
                 )
     if filter is not None:
         if filter.category_id is not None:
@@ -348,16 +348,16 @@ async def list_products_pagination_params(current_user: UserDb = Depends(get_cur
 
 
 @router.get("/products", response_model=List[ProductOut])
-async def list_products(current_user: UserDb = Depends(get_current_active_user),
-                          filter: RequestSearchProducts = Body(None, title="Filter"),
-                          pagination: RequestPagination = Body(..., title="Pagination"),
-                          conn: AsyncIOMotorClient = Depends(get_database)):
+async def list_products(current_user: AccountDb = Depends(get_current_active_user),
+                        filter: RequestSearchProducts = Body(None, title="Filter"),
+                        pagination: RequestPagination = Body(..., title="Pagination"),
+                        conn: AsyncIOMotorClient = Depends(get_database)):
     if filter is not None:
-        if filter.province_id is not None:
-            if not is_valid_oid(oid=filter.province_id):
+        if filter.zone_id is not None:
+            if not is_valid_oid(oid=filter.zone_id):
                 raise HTTPException(
                     status_code=HTTP_400_BAD_REQUEST,
-                    detail="Invalid province id.",
+                    detail="Invalid zone id.",
                 )
     if filter is not None:
         if filter.category_id is not None:
@@ -375,7 +375,7 @@ async def list_products(current_user: UserDb = Depends(get_current_active_user),
 
 @router.put("/products/{product_id}/favorited", response_model=ProductFavoritedOut)
 async def set_product_favorited(
-        current_user: UserDb = Depends(get_current_active_user),
+        current_user: AccountDb = Depends(get_current_active_user),
         product_id: str = Path(..., title="Product id"),
         favorited: bool = Path(..., title="Favorited"),
         conn: AsyncIOMotorClient = Depends(get_database)):

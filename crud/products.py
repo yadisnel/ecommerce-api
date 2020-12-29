@@ -5,29 +5,29 @@ from typing import List, Dict
 import pymongo
 from bson import ObjectId
 
-from core.config import dtododb_database_name, products_collection_name, product_favorites_collection_name
+from core.config import ecommerce_database_name, products_collection_name, product_favorites_collection_name
 from core.emqx import get_user_topic
 from core.emqx import mqtt_client
 from core.mongodb import AsyncIOMotorClient
-from models.image import Image
-from models.location import Location
+from models.images import Image
+from models.locations import Location
 from models.pagination_params import PaginationParams
-from models.product import ProductFavoritedIn, ProductFavoritedOut
-from models.product import ProductIn, ProductDb, ProductOut
+from models.products import ProductFavoritedIn, ProductFavoritedOut
+from models.products import ProductIn, ProductDb, ProductOut
 from validations.paginations import RequestPagination
 from validations.paginations import RequestPaginationParams
 from validations.products import RequestSearchProducts
 
 
 async def add_product_impl(user_id: str, product_in: ProductIn, conn: AsyncIOMotorClient) -> ProductDb:
-    row = await conn[dtododb_database_name][products_collection_name].insert_one(product_in.dict())
+    row = await conn[ecommerce_database_name][products_collection_name].insert_one(product_in.dict())
     mqtt_client.publish(topic=get_user_topic(user_id=user_id), payload=json.dumps(product_in.dict()), qos=2)
     return await get_product_by_id_impl(user_id=user_id, product_id=str(row.inserted_id), conn=conn)
 
 
 async def get_product_by_id_impl(user_id: str, product_id: str, conn: AsyncIOMotorClient) -> ProductDb:
     query = {"_id": ObjectId(product_id), "user_id": user_id}
-    row = await conn[dtododb_database_name][products_collection_name].find_one(query)
+    row = await conn[ecommerce_database_name][products_collection_name].find_one(query)
     if row:
         product_db = ProductDb(**row)
         product_db.id = str(row['_id'])
@@ -36,7 +36,7 @@ async def get_product_by_id_impl(user_id: str, product_id: str, conn: AsyncIOMot
 
 async def exists_product_by_id_impl(user_id: str, product_id: str, conn: AsyncIOMotorClient) -> bool:
     query = {"_id": ObjectId(product_id), "user_id": user_id, "deleted": False}
-    count: int = await conn[dtododb_database_name][products_collection_name].count_documents(query)
+    count: int = await conn[ecommerce_database_name][products_collection_name].count_documents(query)
     if count > 0:
         return True
     return False
@@ -45,27 +45,27 @@ async def exists_product_by_id_impl(user_id: str, product_id: str, conn: AsyncIO
 async def update_complete_product_by_id(user_id: str, product_id: str, product_in: ProductIn,
                                         conn: AsyncIOMotorClient) -> ProductDb:
     query = {'$set': product_in.dict()}
-    await conn[dtododb_database_name][products_collection_name].update_one(
+    await conn[ecommerce_database_name][products_collection_name].update_one(
         {"_id": ObjectId(product_id), "user_id": user_id}, query)
     mqtt_client.publish(topic=get_user_topic(user_id=user_id), payload=json.dumps(product_in.dict()), qos=2)
     return await get_product_by_id_impl(user_id=user_id, product_id=product_id, conn=conn)
 
 
-async def update_all_products_shop_info_impl(user_id: str, location: Location, province_id: str, province_name: str,
+async def update_all_products_shop_info_impl(user_id: str, location: Location, zone_id: str, zone_name: str,
                                              conn: AsyncIOMotorClient):
-    query = {'$set': {"location": location.dict(), "province_id": province_id, "province_name": province_name}}
-    await conn[dtododb_database_name][products_collection_name].update_many({"user_id": user_id}, query)
+    query = {'$set': {"location": location.dict(), "zone_id": zone_id, "zone_name": zone_name}}
+    await conn[ecommerce_database_name][products_collection_name].update_many({"user_id": user_id}, query)
 
 
 async def remove_product_by_id_impl(conn: AsyncIOMotorClient, user_id: str, product_id: str):
     query = {"_id": ObjectId(product_id), "user_id": user_id}
-    await conn[dtododb_database_name][products_collection_name].delete_one(query)
+    await conn[ecommerce_database_name][products_collection_name].delete_one(query)
 
 
 async def add_image_to_product_impl(user_id: str, product_id: str, image_in: Image,
                                     conn: AsyncIOMotorClient) -> ProductDb:
     query = {"$push": {"images": image_in.dict()}}
-    await conn[dtododb_database_name][products_collection_name].update_one(
+    await conn[ecommerce_database_name][products_collection_name].update_one(
         {"_id": ObjectId(product_id), "user_id": user_id}, query)
     return await get_product_by_id_impl(user_id=user_id, product_id=product_id, conn=conn)
 
@@ -73,14 +73,14 @@ async def add_image_to_product_impl(user_id: str, product_id: str, image_in: Ima
 async def remove_image_from_product_impl(user_id: str, product_id: str, image_id: str,
                                          conn: AsyncIOMotorClient) -> ProductDb:
     query = {"$pull": {"images": {"id": image_id}}}
-    await conn[dtododb_database_name][products_collection_name].update_one(
+    await conn[ecommerce_database_name][products_collection_name].update_one(
         {"_id": ObjectId(product_id), "user_id": user_id}, query)
     return await get_product_by_id_impl(user_id=user_id, product_id=user_id, conn=conn)
 
 
 async def exists_image_in_product_impl(user_id: str, product_id: str, image_id: str, conn: AsyncIOMotorClient) -> bool:
     query = {'$and': [{'_id': ObjectId(product_id)}, {"user_id": user_id}, {"images.id": image_id}]}
-    count: int = await conn[dtododb_database_name][products_collection_name].count_documents(query)
+    count: int = await conn[ecommerce_database_name][products_collection_name].count_documents(query)
     if count > 0:
         return True
     return False
@@ -88,7 +88,7 @@ async def exists_image_in_product_impl(user_id: str, product_id: str, image_id: 
 
 async def exists_product_favorited_impl(user_id: str, product_id: str, conn: AsyncIOMotorClient) -> bool:
     query = {"product_id": product_id, "user_id": user_id}
-    count: int = await conn[dtododb_database_name][product_favorites_collection_name].count_documents(query)
+    count: int = await conn[ecommerce_database_name][product_favorites_collection_name].count_documents(query)
     if count > 0:
         return True
     return False
@@ -100,17 +100,17 @@ async def set_product_favorited_impl(product_favorited: ProductFavoritedIn,
                                                                  product_id=product_favorited.product_id, conn=conn)
     if exists_favorited:
         query = {'$set': {"favorited": product_favorited.favorited}}
-        await conn[dtododb_database_name][product_favorites_collection_name].update_one(
+        await conn[ecommerce_database_name][product_favorites_collection_name].update_one(
             {"product_id": product_favorited.product_id, "user_id": product_favorited.user_id}, query)
     else:
-        await conn[dtododb_database_name][product_favorites_collection_name].insert_one(product_favorited.dict())
+        await conn[ecommerce_database_name][product_favorites_collection_name].insert_one(product_favorited.dict())
     return await get_product_favorited_impl(user_id=product_favorited.user_id, product_id=product_favorited.product_id,
                                             conn=conn)
 
 
 async def get_product_favorited_impl(user_id: str, product_id: str, conn: AsyncIOMotorClient) -> ProductFavoritedOut:
     query = {"user_id": user_id, "product_id": product_id}
-    row = await conn[dtododb_database_name][products_collection_name].find_one(query)
+    row = await conn[ecommerce_database_name][products_collection_name].find_one(query)
     if row:
         product_favorited = ProductFavoritedOut(**row)
         product_favorited.id = str(row['_id'])
@@ -121,7 +121,7 @@ async def get_user_products_favorited_in_array(user_id: str, products_ids: List[
     resp: Dict = {}
     and_array = [{"user_id": user_id}, {"product_id": {"$in": products_ids}}]
     query = {'$and': and_array}
-    rows = conn[dtododb_database_name][products_collection_name].find(query)
+    rows = conn[ecommerce_database_name][products_collection_name].find(query)
     async for row in rows:
         resp[row['product_id']] = row['favorited']
     return resp
@@ -134,8 +134,8 @@ async def search_products_pagination_params_impl(request_pagination_params: Requ
     and_array = []
     and_enabled = False
     if filter is not None:
-        if filter.province_id is not None:
-            and_array.append({"province_id": filter.province_id})
+        if filter.zone_id is not None:
+            and_array.append({"zone_id": filter.zone_id})
             and_enabled = True
         if filter.own is not None and filter.own:
             and_array.append({"user_id": user_id})
@@ -164,7 +164,7 @@ async def search_products_pagination_params_impl(request_pagination_params: Requ
         query = {'$and': and_array}
     else:
         query = {}
-    count: float = await conn[dtododb_database_name][products_collection_name].count_documents(query)
+    count: float = await conn[ecommerce_database_name][products_collection_name].count_documents(query)
     pages: int = 0
     elements: float = request_pagination_params.elements
     if count > 0 and elements > 0:
@@ -183,8 +183,8 @@ async def search_products_impl(user_id: str, pagination: RequestPagination, filt
     sort_array = [("score", pymongo.DESCENDING)]
     and_enabled = False
     if filter is not None:
-        if filter.province_id is not None:
-            and_array.append({"province_id": filter.province_id})
+        if filter.zone_id is not None:
+            and_array.append({"zone_id": filter.zone_id})
             and_enabled = True
         if filter.own is not None and filter.own:
             and_array.append({"user_id": user_id})
@@ -215,7 +215,7 @@ async def search_products_impl(user_id: str, pagination: RequestPagination, filt
         query = {}
     if filter is not None and filter.text_search is not None:
         sort_array.append(({"tscore": {"$meta": "textScore"}}, pymongo.DESCENDING))
-    rows = conn[dtododb_database_name][products_collection_name].find(query).sort(sort_array).skip(
+    rows = conn[ecommerce_database_name][products_collection_name].find(query).sort(sort_array).skip(
         (pagination.page - 1) * pagination.elements).limit(pagination.elements)
     products_ids: List[str] = []
     async for row in rows:

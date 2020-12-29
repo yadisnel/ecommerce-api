@@ -21,16 +21,16 @@ from core.config import users_roles
 from core.image import size, resize
 from core.mongodb import AsyncIOMotorClient, get_database
 from core.path import root_path
-from crud.users import get_user_by_facebook_id_impl, add_user_impl, update_complete_user_by_id, \
+from crud.accounts import get_user_by_facebook_id_impl, add_user_impl, update_complete_user_by_id, \
     update_user_facebook_token_by_facebook_id_impl
-from crud.users import update_user_token_by_user_id_impl
-from models.shop import ShopIn
-from models.token import Token
-from models.user import UserDb, UserOut, UserIn
+from crud.accounts import update_user_token_by_user_id_impl
+from models.shops import ShopIn
+from models.tokens import Token
+from models.accounts import AccountDb, AccountOut, AccountIn
 from core.config import url_users_images_on_s3_thumb, url_users_images_on_s3_big, bucket_config
-from models.image import Image
+from models.images import Image
 from core.s3 import write_object_to_s3, delete_object_on_s3
-from crud.users import update_user_avatar_impl
+from crud.accounts import update_user_avatar_impl
 
 router = APIRouter()
 
@@ -48,7 +48,7 @@ def create_access_token(data: dict):
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme),
-                           conn: AsyncIOMotorClient = Depends(get_database)) -> UserDb:
+                           conn: AsyncIOMotorClient = Depends(get_database)) -> AccountDb:
     credentials_exception = HTTPException(
         status_code=HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -105,7 +105,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme),
             user_db.disabled = False
             async with await conn.start_session() as s:
                 async with s.start_transaction():
-                    return await update_complete_user_by_id(user_id=user_db.id, user_in=UserIn(**user_db.dict()),
+                    return await update_complete_user_by_id(user_id=user_db.id, user_in=AccountIn(**user_db.dict()),
                                                             conn=conn)
     except PyJWTError:
         raise credentials_exception
@@ -115,7 +115,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme),
     return user_db
 
 
-async def get_current_active_user(current_user: UserDb = Depends(get_current_user)):
+async def get_current_active_user(current_user: AccountDb = Depends(get_current_user)):
     if current_user.disabled:
         raise HTTPException(
             status_code=HTTP_412_PRECONDITION_FAILED,
@@ -124,7 +124,7 @@ async def get_current_active_user(current_user: UserDb = Depends(get_current_use
     return current_user
 
 
-async def get_current_active_admin_user(current_user: UserDb = Depends(get_current_user)):
+async def get_current_active_admin_user(current_user: AccountDb = Depends(get_current_user)):
     if current_user.disabled:
         raise HTTPException(
             status_code=HTTP_412_PRECONDITION_FAILED,
@@ -149,7 +149,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     response_long_lived = requests.get(url="https://graph.facebook.com/v6.0/oauth/access_token",
                                        params=params_long_lived)
     if response_long_lived.status_code != 200:
-        HTTPException(
+        raise HTTPException(
             status_code=HTTP_401_UNAUTHORIZED,
             detail="Bad user or password",
         )
@@ -162,7 +162,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                       }
     response_profile = requests.get(url="https://graph.facebook.com/v6.0/me", params=params_profile)
     if response_profile.status_code != 200:
-        HTTPException(
+        raise HTTPException(
             status_code=HTTP_401_UNAUTHORIZED,
             detail="Bad user or password",
         )
@@ -170,7 +170,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         async with s.start_transaction():
             user_db = await get_user_by_facebook_id_impl(facebook_id=form_data.username, conn=conn)
             json_data_profile = json.loads(response_profile.text)
-            user_in: UserIn = UserIn()
+            user_in: AccountIn = AccountIn()
             user_in.facebook_id = form_data.username
             user_in.token = None
             user_in.name = json_data_profile['name']
@@ -185,12 +185,12 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             shop.name = "Tienda de " + user_in.name
             shop.images = []
             shop.location = None
-            shop.province_id = None
-            shop.province_name = None
+            shop.zone_id = None
+            shop.zone_name = None
             user_in.shop = shop
             user_in.disabled = False
             if user_db is None:
-                user_db = await add_user_impl(user_in=user_in, conn=conn)
+                user_db = await add_user_impl(account_in=user_in, conn=conn)
             token_data = {'facebook_access_token': access_token,
                           'token_type': token_type,
                           'expires': (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds() + expires_in,
@@ -204,16 +204,16 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": encoded_jwt, "token_type": token_type}
 
 
-@router.get("/users/info", response_model=UserOut)
-async def get_user_information(current_user: UserDb = Depends(get_current_active_user)):
-    user_out: UserOut = UserOut(**current_user.dict())
+@router.get("/accounts/info", response_model=AccountOut)
+async def get_user_information(current_user: AccountDb = Depends(get_current_active_user)):
+    user_out: AccountOut = AccountOut(**current_user.dict())
     return user_out
 
 
-@router.put("/users", response_model=UserOut)
-async def update_user(current_user: UserDb = Depends(get_current_active_user),
-                               file: UploadFile = File(...),
-                               conn: AsyncIOMotorClient = Depends(get_database)):
+@router.put("/accounts", response_model=AccountOut)
+async def update_user(current_user: AccountDb = Depends(get_current_active_user),
+                      file: UploadFile = File(...),
+                      conn: AsyncIOMotorClient = Depends(get_database)):
     filename_original = str(uuid.UUID(bytes=os.urandom(16), version=4)) + "_original_.png"
     filename_big = str(uuid.UUID(bytes=os.urandom(16), version=4)) + "_big_.png"
     filename_thumb = str(uuid.UUID(bytes=os.urandom(16), version=4)) + "_thumb_.png"
@@ -253,12 +253,12 @@ async def update_user(current_user: UserDb = Depends(get_current_active_user),
     if current_user.picture is not None:
         delete_object_on_s3(bucket=bucket_config.name(),key=current_user.picture.thumb_key, region_name=bucket_config.region())
         delete_object_on_s3(bucket=bucket_config.name(),key=current_user.picture.original_key, region_name=bucket_config.region())
-    user_db: UserDb = await update_user_avatar_impl(user_id=current_user.id, image_in=image_in, conn=conn)
-    user_out: UserOut = UserOut(**user_db.dict())
+    user_db: AccountDb = await update_user_avatar_impl(user_id=current_user.id, image_in=image_in, conn=conn)
+    user_out: AccountOut = AccountOut(**user_db.dict())
     return user_out
 
 
-@router.post("/users/real-time/auth-user")
+@router.post("/accounts/real-time/auth-user")
 async def emqx_auth_http_user(request: Request, conn: AsyncIOMotorClient = Depends(get_database)):
     credentials_exception = HTTPException(
         status_code=HTTP_401_UNAUTHORIZED,
@@ -293,7 +293,7 @@ async def emqx_auth_http_user(request: Request, conn: AsyncIOMotorClient = Depen
         raise credentials_exception
 
 
-@router.post("/users/real-time/auth-admin")
+@router.post("/accounts/real-time/auth-admin")
 async def emqx_auth_http_admin(request: Request, conn: AsyncIOMotorClient = Depends(get_database)):
     credentials_exception = HTTPException(
         status_code=HTTP_401_UNAUTHORIZED,
@@ -330,7 +330,7 @@ async def emqx_auth_http_admin(request: Request, conn: AsyncIOMotorClient = Depe
         raise credentials_exception
 
 
-@router.post("/users/real-time/auth-acl")
+@router.post("/accounts/real-time/auth-acl")
 async def emqx_auth_http_acl(request: Request, conn: AsyncIOMotorClient = Depends(get_database)):
     credentials_exception = HTTPException(
         status_code=HTTP_401_UNAUTHORIZED,

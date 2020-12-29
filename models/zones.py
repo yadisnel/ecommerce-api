@@ -1,9 +1,9 @@
-from models.rwmodel import RwModel
+from models.rwmodels import RwModel
 from datetime import datetime
 from typing import List
 
 
-class ProvinceIn(RwModel):
+class ZoneIn(RwModel):
     name: str = None
     n_order: int = None
     created: datetime = None
@@ -11,7 +11,7 @@ class ProvinceIn(RwModel):
     deleted: bool = None
 
 
-class ProvinceOut(RwModel):
+class ZoneOut(RwModel):
     id: str = None
     name: str = None
     n_order: int = None
@@ -20,7 +20,7 @@ class ProvinceOut(RwModel):
     deleted: bool = None
 
 
-class SyncProvincesOut(RwModel):
-    provinces: List[ProvinceOut] = None
+class SyncZonesOut(RwModel):
+    zones: List[ZoneOut] = None
     is_last_offset: bool = None
 

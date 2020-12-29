@@ -1,10 +1,10 @@
 from pydantic import Field
 
-from models.rwmodel import RwModel
+from models.rwmodels import RwModel
 from validations.locations import RequestLocation
 
 
 class RequestUpdateShop(RwModel):
     name: str = Field(..., title="Shop's name")
-    province_id: str = Field(..., title="Province's id")
+    zone_id: str = Field(..., title="Zone id")
     location: RequestLocation = Field(None, title="GPS location.")
