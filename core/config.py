@@ -3,7 +3,7 @@ from databases import DatabaseURL
 # Database config local
 # db_host: str = '127.0.0.1'
 # Database config prod
-db_host: str = '18.185.20.229'
+db_host: str = '18.158.96.25'
 # db_host: str = "api.yadisnel.com"
 db_port: int = 27017
 admin_user: str = "admin"
