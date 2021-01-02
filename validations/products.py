@@ -45,3 +45,7 @@ class RequestSearchProducts(RwModel):
     min_price: float = Field(None, title="Min price", ge=1)
     max_price: float = Field(None, title="Max price",ge=1)
 
+
+class RequestSetProductFavorited(RwModel):
+    favorited: bool = Field(..., title="Favorited")
+

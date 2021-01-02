@@ -40,7 +40,7 @@ from models.zones import ZoneOut
 from models.accounts import AccountDb
 from routers.accounts import get_current_active_user
 from validations.paginations import RequestPagination, RequestPaginationParams
-from validations.products import RequestAddProduct, RequestUpdateProduct
+from validations.products import RequestAddProduct, RequestUpdateProduct, RequestSetProductFavorited
 from validations.products import RequestSearchProducts
 
 router = APIRouter()
@@ -377,7 +377,7 @@ async def list_products(current_user: AccountDb = Depends(get_current_active_use
 async def set_product_favorited(
         current_user: AccountDb = Depends(get_current_active_user),
         product_id: str = Path(..., title="Product id"),
-        favorited: bool = Path(..., title="Favorited"),
+        favorited: RequestSetProductFavorited = Body(..., title="Favorited"),
         conn: AsyncIOMotorClient = Depends(get_database)):
     if not is_valid_oid(oid=product_id):
         raise HTTPException(
