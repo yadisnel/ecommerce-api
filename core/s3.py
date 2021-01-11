@@ -1,6 +1,7 @@
 from core.aws import load_config
 import boto3
 
+
 def read_object_from_s3(bucket, key, region_name='eu-central-1'):
     config = load_config()
     session = boto3.Session(

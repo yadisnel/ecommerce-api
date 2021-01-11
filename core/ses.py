@@ -6,15 +6,8 @@ from core.aws import load_config
 async def send_registry_email_to_customer(email: str, security_code: str, locale):
     sender = "Ecommerce Team <yadisnel@gmail.com>"
     region_name = "eu-central-1"
-    # The character encoding for the email.
     charset = "UTF-8"
     config = load_config()
-    # Specify a configuration set. If you do not want to use a configuration
-    # set, comment the following variable, and the
-    # ConfigurationSetName=CONFIGURATION_SET argument below.
-    # CONFIGURATION_SET = "ConfigSet"
-
-    # The subject line for the email.
     subject = "Confirmación de registro"
 
     # The email body for recipients with non-HTML email clients.
@@ -346,9 +339,6 @@ async def send_registry_email_to_customer(email: str, security_code: str, locale
                 },
             },
             Source=sender,
-            # If you are not using a configuration set, comment or delete the
-            # following line
-            # ConfigurationSetName=CONFIGURATION_SET,
         )
     # Display an error if something goes wrong.
     except ClientError as e:
