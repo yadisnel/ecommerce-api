@@ -1,18 +1,18 @@
 from databases import DatabaseURL
 
 # Database config local
-db_host: str = '127.0.0.1'
-admin_user: str = "boukker"
-admin_pass: str = "Boukker.123"
-db_port: int = 27017
-db_user_db = "admin"
-
-# Database config prod
-# db_host: str = '18.158.96.25'
+# db_host: str = '127.0.0.1'
+# admin_user: str = "boukker"
+# admin_pass: str = "Boukker.123"
 # db_port: int = 27017
-# admin_user: str = "admin"
-# admin_pass: str = "HyperMongoDb2021*"
 # db_user_db = "admin"
+
+#Database config prod
+db_host: str = '18.158.96.25'
+db_port: int = 27017
+admin_user: str = "admin"
+admin_pass: str = "HyperMongoDb2021*"
+db_user_db = "admin"
 
 db_url = DatabaseURL(
     f"mongodb://{admin_user}:{admin_pass}@{db_host}:{db_port}/{db_user_db}"
