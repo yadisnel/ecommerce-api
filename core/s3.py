@@ -1,10 +1,5 @@
-import json
-import os
-
+from core.aws import load_config
 import boto3
-
-from core.path import root_path
-
 
 def read_object_from_s3(bucket, key, region_name='eu-central-1'):
     config = load_config()
@@ -42,11 +37,3 @@ def delete_object_on_s3(bucket, key, region_name='eu-central-1'):
     bucket = s3.Bucket(bucket)
     s3object = bucket.Object(key)
     s3object.delete()
-
-
-def load_config():
-    s3_path_config = os.path.join(root_path(), 'core', 'credentials', 's3.json')
-    json_file = open(s3_path_config)
-    json_str = json_file.read()
-    json_data = json.loads(json_str)
-    return json_data

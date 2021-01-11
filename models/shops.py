@@ -11,6 +11,7 @@ class ShopIn(RwModel):
     location: Location = None
     zone_id: str = None
     zone_name: str = None
+    account_id: str = None
 
 
 class ShopOut(RwModel):
@@ -20,6 +21,7 @@ class ShopOut(RwModel):
     location: Location = None
     zone_id: str = None
     zone_name: str = None
+    account_id: str = None
 
 
 class ShopDb(RwModel):
@@ -29,3 +31,5 @@ class ShopDb(RwModel):
     location: Location = None
     zone_id: str = None
     zone_name: str = None
+    account_id: str = None
+

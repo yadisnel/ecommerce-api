@@ -8,7 +8,7 @@ from starlette.status import HTTP_400_BAD_REQUEST
 from core.generics import is_valid_oid, is_valid_message_body
 from crud.conversations import get_conversation_between_users_impl, add_conversation_impl
 from crud.messages import send_message_impl
-from crud.accounts import get_user_by_id_impl
+from crud.accounts import get_account_by_id_impl
 from core.mongodb import AsyncIOMotorClient, get_database
 from models.conversations import ConversationOut, ConversationIn
 from models.messages import MessageIn
@@ -33,7 +33,7 @@ async def send_chat_message(req: RequestSendMessage = Body(..., title="Message")
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid message body.",
         )
-    to_user: AccountDb = await get_user_by_id_impl(user_id=req.to_user_id, conn=conn)
+    to_user: AccountDb = await get_account_by_id_impl(user_id=req.to_user_id, conn=conn)
     if to_user is None:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,

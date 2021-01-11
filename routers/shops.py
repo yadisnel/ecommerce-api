@@ -14,9 +14,9 @@ from core.image import resize, size
 from core.path import root_path
 from core.s3 import write_object_to_s3
 from crud.products import update_all_products_shop_info_impl
-from crud.accounts import add_image_to_shop_impl, remove_image_from_shop_impl, exists_image_in_shop_by_id_impl
-from crud.accounts import update_complete_shop_by_user_id
-from crud.accounts import remove_all_images_from_shop_impl
+from crud.shops import add_image_to_shop_impl, remove_image_from_shop_impl, exists_image_in_shop_by_id_impl
+from crud.shops import update_complete_shop_by_id
+from crud.shops import remove_all_images_from_shop_impl
 from core.mongodb import AsyncIOMotorClient, get_database
 from models.images import Image
 from models.shops import ShopIn
@@ -75,7 +75,7 @@ async def update_shop(current_user: AccountDb = Depends(get_current_active_user)
             await update_all_products_shop_info_impl(user_id=current_user.id, location=shop_in.location,
                                                      zone_id=req.zone_id, zone_name=zone_out.name,
                                                      conn=conn)
-            user_db = await update_complete_shop_by_user_id(user_id=current_user.id, shop_in=shop_in, conn=conn)
+            user_db = await update_complete_shop_by_id(shop_id=shop_id, shop_in=shop_in, conn=conn)
             user_out: AccountOut = AccountOut(**user_db.dict())
             return user_out
 

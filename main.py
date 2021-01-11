@@ -6,6 +6,8 @@ from routers import zones, chat, sync
 from routers import shops
 from routers import products, accounts, categories
 from routers.dasboard import router as dashboard_router
+from fastapi.middleware.cors import CORSMiddleware
+
 
 
 async def startup():
@@ -18,7 +20,22 @@ async def shutdown():
     await close_broker_cnx()
 
 
-app = FastAPI(title="E-Commerce Platform API", version="v1.0-beta.1")
+app = FastAPI(title="E-Commerce Platform API", version="v1.0-beta.2")
+
+
+origins = [
+    "*",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 app.include_router(accounts.router, tags=["accounts"])
 app.include_router(products.router, tags=["products"])
 app.include_router(shops.router, tags=["shops"])

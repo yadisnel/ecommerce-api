@@ -1,14 +1,19 @@
 from databases import DatabaseURL
 
 # Database config local
-# db_host: str = '127.0.0.1'
-# Database config prod
-db_host: str = '18.158.96.25'
-# db_host: str = "api.yadisnel.com"
+db_host: str = '127.0.0.1'
+admin_user: str = "boukker"
+admin_pass: str = "Boukker.123"
 db_port: int = 27017
-admin_user: str = "admin"
-admin_pass: str = "HyperMongoDb2021*"
 db_user_db = "admin"
+
+# Database config prod
+# db_host: str = '18.158.96.25'
+# db_port: int = 27017
+# admin_user: str = "admin"
+# admin_pass: str = "HyperMongoDb2021*"
+# db_user_db = "admin"
+
 db_url = DatabaseURL(
     f"mongodb://{admin_user}:{admin_pass}@{db_host}:{db_port}/{db_user_db}"
 )
@@ -18,6 +23,8 @@ min_conections_count: int = 10
 # Database collections
 ecommerce_database_name = "ecommercedb"
 accounts_collection_name = "accounts"
+pending_accounts_collection_name = "pending_accounts"
+
 shops_collection_name = "shops"
 products_collection_name = "products"
 categories_collection_name = "categories"
@@ -79,4 +86,4 @@ shop_max_images_count = 10
 # Product images
 product_max_images_count = 10
 
-bucket_config = BucketConfig(bucket_name="dtodo-images", region_name='eu-central-1')
+bucket_config = BucketConfig(bucket_name="ecommercedb", region_name='eu-central-1')
