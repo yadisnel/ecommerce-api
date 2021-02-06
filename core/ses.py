@@ -304,10 +304,10 @@ async def send_registry_email_to_customer(email: str, security_code: str, locale
                 """
 
     body_html = body_html.replace("{{var:confirmation_link}}",
-                                  "https://app.ecommerce.com/confirm-by-email?email=%s&code=%s" % (
+                                  "http://127.0.0.1:3000/confirm-by-email?email=%s&code=%s" % (
                                   email, security_code))
     body_text = body_text.replace("{{var:confirmation_link}}",
-                                  "https://app.ecommerce.com/confirm-by-email?email=%s&code=%s" % (
+                                  "http://127.0.0.1:3000/confirm-by-email?email=%s&code=%s" % (
                                   email, security_code))
 
     boto3.setup_default_session(aws_access_key_id=config['aws_access_key_id'],
