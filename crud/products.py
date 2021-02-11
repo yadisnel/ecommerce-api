@@ -9,14 +9,14 @@ from core.config import ecommerce_database_name, products_collection_name, produ
 from core.emqx import get_user_topic
 from core.emqx import mqtt_client
 from core.mongodb import AsyncIOMotorClient
-from models.images import Image
+from models.images import ImageDb
 from models.locations import Location
 from models.pagination_params import PaginationParams
-from models.products import ProductFavoritedIn, ProductFavoritedOut
+from models.products import ProductFavoriteIn, ProductFavoriteOut
 from models.products import ProductIn, ProductDb, ProductOut
-from validations.paginations import RequestPagination
-from validations.paginations import RequestPaginationParams
-from validations.products import RequestSearchProducts
+from erequests.paginations import RequestPagination
+from erequests.paginations import RequestPaginationParams
+from erequests.products import RequestSearchProducts
 
 
 async def add_product_impl(user_id: str, product_in: ProductIn, conn: AsyncIOMotorClient) -> ProductDb:
@@ -62,7 +62,7 @@ async def remove_product_by_id_impl(conn: AsyncIOMotorClient, user_id: str, prod
     await conn[ecommerce_database_name][products_collection_name].delete_one(query)
 
 
-async def add_image_to_product_impl(user_id: str, product_id: str, image_in: Image,
+async def add_image_to_product_impl(user_id: str, product_id: str, image_in: ImageDb,
                                     conn: AsyncIOMotorClient) -> ProductDb:
     query = {"$push": {"images": image_in.dict()}}
     await conn[ecommerce_database_name][products_collection_name].update_one(
@@ -94,12 +94,12 @@ async def exists_product_favorited_impl(user_id: str, product_id: str, conn: Asy
     return False
 
 
-async def set_product_favorited_impl(product_favorited: ProductFavoritedIn,
-                                     conn: AsyncIOMotorClient) -> ProductFavoritedOut:
+async def set_product_favorited_impl(product_favorited: ProductFavoriteIn,
+                                     conn: AsyncIOMotorClient) -> ProductFavoriteOut:
     exists_favorited: bool = await exists_product_favorited_impl(user_id=product_favorited.user_id,
                                                                  product_id=product_favorited.product_id, conn=conn)
     if exists_favorited:
-        query = {'$set': {"favorited": product_favorited.favorited}}
+        query = {'$set': {"favorited": product_favorited.favorite}}
         await conn[ecommerce_database_name][product_favorites_collection_name].update_one(
             {"product_id": product_favorited.product_id, "user_id": product_favorited.user_id}, query)
     else:
@@ -108,11 +108,11 @@ async def set_product_favorited_impl(product_favorited: ProductFavoritedIn,
                                             conn=conn)
 
 
-async def get_product_favorited_impl(user_id: str, product_id: str, conn: AsyncIOMotorClient) -> ProductFavoritedOut:
+async def get_product_favorited_impl(user_id: str, product_id: str, conn: AsyncIOMotorClient) -> ProductFavoriteOut:
     query = {"user_id": user_id, "product_id": product_id}
     row = await conn[ecommerce_database_name][products_collection_name].find_one(query)
     if row:
-        product_favorited = ProductFavoritedOut(**row)
+        product_favorited = ProductFavoriteOut(**row)
         product_favorited.id = str(row['_id'])
         return product_favorited
 

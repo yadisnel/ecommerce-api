@@ -1,10 +1,10 @@
 from fastapi import APIRouter
 from fastapi import Depends
+from fastapi import Body
 
 from core.mongodb import AsyncIOMotorClient, get_database
+from erequests.categories import RequestListCategories
 from models.categories import CategoryOut
-from models.accounts import AccountDb
-from routers.accounts import get_current_active_user
 from typing import List
 from crud.categories import get_all_categories_impl
 
@@ -12,6 +12,6 @@ router = APIRouter()
 
 
 @router.get("/categories", response_model=List[CategoryOut])
-async def list_categories(current_user: AccountDb = Depends(get_current_active_user),
+async def list_categories(request: RequestListCategories = Body(..., title="Message"),
                           conn: AsyncIOMotorClient = Depends(get_database)):
-    return await get_all_categories_impl(conn=conn)
+    return await get_all_categories_impl(request=request, conn=conn)

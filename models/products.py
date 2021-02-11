@@ -1,6 +1,6 @@
 from models.rwmodels import RwModel
 from typing import List
-from models.images import Image
+from models.images import ImageDb
 from models.locations import Location
 from datetime import datetime
 
@@ -17,7 +17,7 @@ class ProductIn(RwModel):
     zone_id: str = None
     zone_name: str = None
     price: float = None
-    images: List[Image] = None
+    images: List[ImageDb] = None
     isNew: bool = None
     currency: str = None
     created: datetime = None
@@ -28,6 +28,7 @@ class ProductIn(RwModel):
     views: int = None
     score: float = None
     deleted: bool = None
+    country_iso_code: str = None
 
 
 class ProductDb(RwModel):
@@ -43,17 +44,19 @@ class ProductDb(RwModel):
     zone_id: str = None
     zone_name: str = None
     price: float = None
-    images: List[Image] = None
+    images: List[ImageDb] = None
     isNew: bool = None
     currency: str = None
     created: datetime = None
     modified: datetime = None
     location: Location = None
     promoted: bool = None
+    favorite: bool = None
     likes: int = None
     views: int = None
     score: float = None
     deleted: bool = None
+    country_iso_code: str = None
 
 
 class ProductOut(RwModel):
@@ -69,30 +72,39 @@ class ProductOut(RwModel):
     zone_id: str = None
     zone_name: str = None
     price: float = None
-    images: List[Image] = None
+    images: List[ImageDb] = None
     isNew: bool = None
     currency: str = None
     created: datetime = None
     modified: datetime = None
     location: Location = None
     promoted: bool = None
-    favorited: bool =None
+    favorite: bool = None
     likes: int = None
     views: int = None
     score: float = None
     deleted: bool = None
 
 
-class ProductFavoritedIn(RwModel):
+class ProductFavoriteIn(RwModel):
     user_id: str = None
     product_id: str = None
-    favorited: bool = None
+    favorite: bool = None
+    country_iso_code: str = None
 
 
-class ProductFavoritedOut(RwModel):
+class ProductFavoriteDb(RwModel):
     id: str = None
     user_id: str = None
     product_id: str = None
-    favorited: bool = None
+    favorite: bool = None
+    country_iso_code: str = None
+
+
+class ProductFavoriteOut(RwModel):
+    id: str = None
+    user_id: str = None
+    product_id: str = None
+    favorite: bool = None
 
 

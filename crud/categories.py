@@ -5,9 +5,10 @@ from bson import ObjectId
 
 from core.config import ecommerce_database_name, categories_collection_name
 from core.mongodb import AsyncIOMotorClient
+from erequests.categories import RequestListCategories
 from models.categories import CategoryIn, CategoryOut, SubCategoryIn, SubCategoryOut, SyncCategoriesOut
 from datetime import datetime
-from validations.sync import RequestSync
+from erequests.sync import RequestSync
 
 
 async def add_category_impl(category_in: CategoryIn, conn: AsyncIOMotorClient) -> CategoryOut:
@@ -92,9 +93,9 @@ async def get_sub_category_by_id_impl(category_id: str, sub_category_id: str, co
         return sub_category_out
 
 
-async def get_all_categories_impl(conn: AsyncIOMotorClient) -> List[CategoryOut]:
+async def get_all_categories_impl(request: RequestListCategories ,conn: AsyncIOMotorClient) -> List[CategoryOut]:
     categories: List[CategoryOut] = []
-    query = {"deleted": False}
+    query = {"country_iso_code": request.country_iso_code, "deleted": False}
     rows = conn[ecommerce_database_name][categories_collection_name].find(query)
     async for row in rows:
         category_out = CategoryOut(**row)

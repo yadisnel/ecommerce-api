@@ -14,26 +14,26 @@ from models.conversations import ConversationOut, ConversationIn
 from models.messages import MessageIn
 from models.accounts import AccountDb
 from routers.accounts import get_current_active_user
-from validations.messages import RequestSendMessage
+from erequests.messages import RequestSendMessage
 
 router = APIRouter()
 
 
 @router.post("/chat/messages/")
-async def send_chat_message(req: RequestSendMessage = Body(..., title="Message"),
+async def send_chat_message(erequest: RequestSendMessage = Body(..., title="Message"),
                             current_user: AccountDb = Depends(get_current_active_user),
                             conn: AsyncIOMotorClient = Depends(get_database)):
-    if not is_valid_oid(oid=req.to_user_id):
+    if not is_valid_oid(oid=erequest.to_user_id):
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid user id.",
         )
-    if not is_valid_message_body(body=req.body):
+    if not is_valid_message_body(body=erequest.body):
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
-            detail="Invalid message body.",
+            detail="Invalid message body",
         )
-    to_user: AccountDb = await get_account_by_id_impl(user_id=req.to_user_id, conn=conn)
+    to_user: AccountDb = await get_account_by_id_impl(account_id=erequest.to_user_id, conn=conn)
     if to_user is None:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
@@ -64,7 +64,7 @@ async def send_chat_message(req: RequestSendMessage = Body(..., title="Message")
     message_in_from.from_user_name = current_user.name
     message_in_from.to_user_id = to_user.id
     message_in_from.to_user_name = to_user.name
-    message_in_from.body = req.body
+    message_in_from.body = erequest.body
     message_in_from.created = now
     message_in_from.modified = now
     message_in_from.deleted = False
@@ -75,7 +75,7 @@ async def send_chat_message(req: RequestSendMessage = Body(..., title="Message")
     message_in_to.from_user_name = current_user.name
     message_in_to.to_user_id = to_user.id
     message_in_to.to_user_name = to_user.name
-    message_in_to.body = req.body
+    message_in_to.body = erequest.body
     message_in_to.created = now
     message_in_to.modified = now
     message_in_to.deleted = False

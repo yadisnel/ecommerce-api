@@ -19,7 +19,8 @@ class RequestRegisterAccountWithEmail(RwModel):
                           title="Password.",
                           min_length=8,
                           max_length=64)
-    locale: str = Field(..., title="Locale. Only 'es_ES' and 'en_US' supported.")
+    locale: str = Field(..., title="Locale.Only 'es_ES',  'en_US', 'sr_Latn' and 'fr_CA' are supported.")
+    country_iso_code: str = Field(..., title="Country iso code. Only 'CU','US', 'UY', 'SR','ES', and 'CA' are supported.")
 
 
 class RequestConfirmRegisterAccountWithEmail(RwModel):

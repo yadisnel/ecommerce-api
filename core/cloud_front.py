@@ -12,7 +12,7 @@ from core.path import root_path
 
 def rsa_signer(message):
     root_dir = root_path()
-    cloud_front_pem_dir = os.path.join(root_dir, 'core', 'credentials', 'pk-APKAJFSR76AO5IEYH6TQ.pem')
+    cloud_front_pem_dir = os.path.join(root_dir, 'core', 'credentials', 'pk-APKAJWFH4JNSGGTRYADA.pem')
     #### .pem is the private keyfile downloaded from CloudFront keypair
     with open(cloud_front_pem_dir, 'rb') as key_file:
         private_key = serialization.load_pem_private_key(key_file.read(), password=None, backend=default_backend())
@@ -22,7 +22,7 @@ def rsa_signer(message):
 
 
 def get_signed_url(s3_key):
-    key_id = 'APKAJFSR76AO5IEYH6TQ'
+    key_id = 'APKAJWFH4JNSGGTRYADA'
     url = 'https://d3dgdgroldjn7d.cloudfront.net/' + s3_key
     current_time = datetime.datetime.utcnow()
     expire_date = current_time + datetime.timedelta(days=365000)

@@ -1,7 +1,7 @@
 from bson import ObjectId
 from core.config import ecommerce_database_name, accounts_collection_name
 from core.mongodb import AsyncIOMotorClient
-from models.images import Image
+from models.images import ImageDb
 from models.accounts import AccountDb, AccountIn
 
 
@@ -54,7 +54,7 @@ async def update_account_facebook_token_by_facebook_id_impl(conn: AsyncIOMotorCl
     return await get_account_by_facebook_id_impl(facebook_id=facebook_id, conn=conn)
 
 
-async def update_account_avatar_impl(account_id: str, image_in: Image, conn: AsyncIOMotorClient) -> AccountDb:
-    query = {"$set": {"picture": image_in.dict()}}
+async def update_account_avatar_impl(account_id: str, image_in: ImageDb, conn: AsyncIOMotorClient) -> AccountDb:
+    query = {"$set": {"avatar": image_in.dict()}}
     await conn[ecommerce_database_name][accounts_collection_name].update_one({"_id": ObjectId(account_id)}, query)
     return await get_account_by_id_impl(account_id=account_id, conn=conn)

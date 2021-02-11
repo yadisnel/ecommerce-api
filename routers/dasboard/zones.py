@@ -13,7 +13,7 @@ from models.zones import ZoneIn, ZoneOut
 from models.accounts import AccountDb
 from routers.dasboard.dashboard import router
 from routers.accounts import get_current_active_admin_user
-from validations.zones import RequestAddZone, RequestUpdateZone
+from erequests.zones import RequestAddZone, RequestUpdateZone
 from datetime import datetime
 
 

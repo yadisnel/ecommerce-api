@@ -33,15 +33,15 @@ from crud.products import update_complete_product_by_id
 from crud.zones import get_zone_by_id_impl
 from models.categories import CategoryOut
 from models.categories import SubCategoryOut
-from models.images import Image
+from models.images import ImageDb
 from models.pagination_params import PaginationParams
-from models.products import ProductIn, ProductDb, ProductOut, ProductFavoritedIn, ProductFavoritedOut
+from models.products import ProductIn, ProductDb, ProductOut, ProductFavoriteIn, ProductFavoriteOut
 from models.zones import ZoneOut
 from models.accounts import AccountDb
 from routers.accounts import get_current_active_user
-from validations.paginations import RequestPagination, RequestPaginationParams
-from validations.products import RequestAddProduct, RequestUpdateProduct, RequestSetProductFavorited
-from validations.products import RequestSearchProducts
+from erequests.paginations import RequestPagination, RequestPaginationParams
+from erequests.products import RequestAddProduct, RequestUpdateProduct, RequestSetProductFavorited
+from erequests.products import RequestSearchProducts
 
 router = APIRouter()
 
@@ -255,7 +255,7 @@ async def add_image_to_product(current_user: AccountDb = Depends(get_current_act
     original_size = len(file_bytes_big)
     thumb_height, thumb_width = size(file_bytes_thumb)
     thumb_size = len(file_bytes_thumb)
-    image_in: Image = Image()
+    image_in: ImageDb = ImageDb()
     image_in.id = str(uuid.UUID(bytes=os.urandom(16), version=4))
     image_in.original_key = key_big
     image_in.original_url = get_signed_url(s3_key=image_in.original_key)
@@ -373,7 +373,7 @@ async def list_products(current_user: AccountDb = Depends(get_current_active_use
         conn=conn)
 
 
-@router.put("/products/{product_id}/favorited", response_model=ProductFavoritedOut)
+@router.put("/products/{product_id}/favorited", response_model=ProductFavoriteOut)
 async def set_product_favorited(
         current_user: AccountDb = Depends(get_current_active_user),
         product_id: str = Path(..., title="Product id"),
@@ -393,7 +393,7 @@ async def set_product_favorited(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid product id.",
         )
-    product_favorited_in: ProductFavoritedIn = ProductFavoritedIn()
+    product_favorited_in: ProductFavoriteIn = ProductFavoriteIn()
     product_favorited_in.product_id = product_id
     product_favorited_in.user_id = current_user.id
     product_favorited_in.favorited= favorited

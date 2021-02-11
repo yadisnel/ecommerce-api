@@ -18,12 +18,12 @@ from crud.shops import add_image_to_shop_impl, remove_image_from_shop_impl, exis
 from crud.shops import update_complete_shop_by_id
 from crud.shops import remove_all_images_from_shop_impl
 from core.mongodb import AsyncIOMotorClient, get_database
-from models.images import Image
+from models.images import ImageDb
 from models.shops import ShopIn
 from models.accounts import AccountDb
 from models.accounts import AccountOut
 from routers.accounts import get_current_active_user
-from validations.shops import RequestUpdateShop
+from erequests.shops import RequestUpdateShop
 from models.locations import Location
 from core.generics import is_valid_oid
 from crud.zones import exists_zone_by_id_impl, get_zone_by_id_impl
@@ -122,7 +122,7 @@ async def add_image_to_shop(current_user: AccountDb = Depends(get_current_active
     original_size = len(file_bytes_big)
     thumb_height, thumb_width = size(file_bytes_thumb)
     thumb_size = len(file_bytes_thumb)
-    image_in: Image = Image()
+    image_in: ImageDb = ImageDb()
     image_in.id = str(uuid.UUID(bytes=os.urandom(16), version=4))
     image_in.original_key = key_big
     image_in.original_url = get_signed_url(s3_key=image_in.original_key)

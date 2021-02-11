@@ -1,11 +1,7 @@
 import imghdr
-import json
 import os
 import uuid
-from datetime import datetime
-
 import jwt
-import requests
 from fastapi import APIRouter
 from fastapi import Body
 
@@ -17,6 +13,7 @@ from starlette.requests import Request
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_400_BAD_REQUEST
 from starlette.status import HTTP_412_PRECONDITION_FAILED, HTTP_200_OK, HTTP_406_NOT_ACCEPTABLE
 
+from core.cloud_front import get_signed_url
 from core.config import admin_user, admin_pass
 from core.config import image_thumb_resolution, image_big_resolution
 from core.config import users_roles
@@ -25,19 +22,17 @@ from core.ses import send_registry_email_to_customer
 from core.mongodb import AsyncIOMotorClient, get_database
 from core.path import root_path
 from core.security import is_strong_password, verify_password
-from crud.accounts import get_account_by_facebook_id_impl, add_account_impl, update_complete_account_by_id, \
-    update_account_facebook_token_by_facebook_id_impl, get_standard_account_by_email_impl, update_account_avatar_impl
+from crud.accounts import get_account_by_facebook_id_impl, add_account_impl, \
+ get_standard_account_by_email_impl, update_account_avatar_impl
 from crud.pending_accounts import add_standard_pending_account_with_email, get_pending_account_by_email_impl, \
     delete_standard_pending_account_by_email
-from models.shops import ShopIn
 from models.tokens import Token, TokenData
 from models.accounts import AccountDb, AccountOut, AccountIn, StandardAccountInfo
 from core.config import url_users_images_on_s3_thumb, url_users_images_on_s3_big, bucket_config
-from models.images import Image
+from models.images import ImageDb
 from core.s3 import write_object_to_s3, delete_object_on_s3
-from validations.accounts import RequestRegisterAccountWithEmail, RequestConfirmRegisterAccountWithEmail
+from erequests.accounts import RequestRegisterAccountWithEmail, RequestConfirmRegisterAccountWithEmail
 from datetime import datetime, timedelta
-
 
 router = APIRouter()
 
@@ -261,47 +256,60 @@ async def get_user_information(current_user: AccountDb = Depends(get_current_act
 
 
 @router.post("/accounts/register-with-email", status_code=HTTP_200_OK)
-async def register_with_email(body: RequestRegisterAccountWithEmail = Body(..., title="body"),
-                            conn: AsyncIOMotorClient = Depends(get_database)):
+async def register_with_email(e_request: RequestRegisterAccountWithEmail = Body(..., title="body request"),
+                              conn: AsyncIOMotorClient = Depends(get_database)):
     async with await conn.start_session() as s:
         async with s.start_transaction():
-            account_in_db = await get_standard_account_by_email_impl(conn=conn, email=body.email)
+            account_in_db = await get_standard_account_by_email_impl(conn=conn, email=e_request.email)
             if account_in_db is not None:
                 raise HTTPException(
                     status_code=HTTP_412_PRECONDITION_FAILED,
                     detail="User with this email already exists",
                 )
-            if body.locale != "es_ES" and body.locale != "en_US":
+            if e_request.locale != "es_ES" and \
+                    e_request.locale != "en_US" \
+                    and e_request.locale != "sr_Latn"\
+                    and e_request.locale != "sr_Latn"\
+                    and e_request.locale != "fr_CA":
                 raise HTTPException(
                     status_code=HTTP_400_BAD_REQUEST,
-                    detail="Invalid locale. Only 'es_ES' and 'en_US' are supported.",
+                    detail="Invalid locale. Only 'es_ES',  'en_US', 'sr_Latn' and 'fr_CA' are supported.",
                 )
-            if not is_strong_password(password=body.password):
+            if e_request.country_iso_code != "CU" \
+                    and e_request.country_iso_code != "US" \
+                    and e_request.country_iso_code != "SR" \
+                    and e_request.country_iso_code != "UY"\
+                    and e_request.country_iso_code != "ES"\
+                    and e_request.country_iso_code != "CA":
+                raise HTTPException(
+                    status_code=HTTP_400_BAD_REQUEST,
+                    detail="Invalid country_iso_code. Only 'CU','US', 'UY', 'SR','ES', and 'CA' are supported.",
+                )
+            if not is_strong_password(password=e_request.password):
                 raise HTTPException(
                     status_code=HTTP_406_NOT_ACCEPTABLE,
                     detail="Invalid password. Minimum 8 characters, at least one number, at least one Uppercase letter, at least one lowercase letter.",
                 )
             pending_account_in_db = await add_standard_pending_account_with_email(conn=conn,
-                                                                                  email=body.email,
-                                                                                  password=body.password)
+                                                                                  e_request=e_request)
             await send_registry_email_to_customer(email=pending_account_in_db.email,
                                                   security_code=pending_account_in_db.security_code,
-                                                  locale=body.locale)
+                                                  locale=e_request.locale)
             return {"success": True}
 
 
 @router.post("/accounts/confirm-register-with-email", status_code=HTTP_200_OK)
-async def confirm_register_with_email(body: RequestConfirmRegisterAccountWithEmail = Body(..., title="body"),
-                                    conn: AsyncIOMotorClient = Depends(get_database)) -> AccountOut:
+async def confirm_register_with_email(e_request: RequestConfirmRegisterAccountWithEmail = Body(..., title="body request"),
+                                      conn: AsyncIOMotorClient = Depends(get_database)) -> AccountOut:
     async with await conn.start_session() as s:
         async with s.start_transaction():
-            account_pending_in_db = await get_pending_account_by_email_impl(conn=conn, email=body.email)
-            if not account_pending_in_db or not account_pending_in_db.security_code == body.security_code:
+            account_pending_in_db = await get_pending_account_by_email_impl(conn=conn, email=e_request.email)
+            if not account_pending_in_db or not account_pending_in_db.security_code == e_request.security_code:
                 raise HTTPException(
                     status_code=HTTP_412_PRECONDITION_FAILED,
                     detail="There is not pending user with this email.",
                 )
-            account_db = await get_standard_account_by_email_impl(conn=conn, email=body.email)
+            account_db = await get_standard_account_by_email_impl(conn=conn, email=e_request.email)
             if account_db:
                 raise HTTPException(
                     status_code=HTTP_406_NOT_ACCEPTABLE,
@@ -314,20 +322,21 @@ async def confirm_register_with_email(body: RequestConfirmRegisterAccountWithEma
             account_in.name = None
             account_in.first_name = None
             account_in.last_name = None
-            account_in.picture = None
+            account_in.avatar = None
             account_in.role = users_roles["user"]
             account_in.create_at = int(date)
             account_in.modified_at = int(date)
             account_in.disabled = False
-            standard_account_info : StandardAccountInfo = StandardAccountInfo()
+            standard_account_info: StandardAccountInfo = StandardAccountInfo()
             standard_account_info.hashed_password = account_pending_in_db.hashed_password
             standard_account_info.email = account_pending_in_db.email
             account_in.standard_account_info = standard_account_info
             account_in.facebook_account_info = None
             account_in.is_standard_account = True
             account_in.is_facebook_account = False
-            account_db = await add_account_impl( conn=conn, account_in=account_in)
-            await delete_standard_pending_account_by_email(conn=conn, email=body.email)
+            account_in.country_iso_code = account_pending_in_db.country_iso_code
+            account_db = await add_account_impl(conn=conn, account_in=account_in)
+            await delete_standard_pending_account_by_email(conn=conn, email=e_request.email)
             return AccountOut(**account_db.dict())
 
 
@@ -361,7 +370,7 @@ async def update_account_avatar(current_account: AccountDb = Depends(get_current
     original_size = len(file_bytes_big)
     thumb_height, thumb_width = size(file_bytes_thumb)
     thumb_size = len(file_bytes_thumb)
-    image_in: Image = Image()
+    image_in: ImageDb = ImageDb()
     image_in.id = str(uuid.UUID(bytes=os.urandom(16), version=4))
     image_in.original_key = key_big
     image_in.original_width = original_width
@@ -371,10 +380,12 @@ async def update_account_avatar(current_account: AccountDb = Depends(get_current
     image_in.thumb_width = thumb_width
     image_in.thumb_height = thumb_height
     image_in.thumb_size = thumb_size
-    if current_account.picture is not None:
-        delete_object_on_s3(bucket=bucket_config.name(), key=current_account.picture.thumb_key,
+    image_in.original_url = get_signed_url(s3_key=key_big)
+    image_in.thumb_url = get_signed_url(s3_key=key_thumb)
+    if current_account.avatar is not None:
+        delete_object_on_s3(bucket=bucket_config.name(), key=current_account.avatar.thumb_key,
                             region_name=bucket_config.region())
-        delete_object_on_s3(bucket=bucket_config.name(), key=current_account.picture.original_key,
+        delete_object_on_s3(bucket=bucket_config.name(), key=current_account.avatar.original_key,
                             region_name=bucket_config.region())
     user_db: AccountDb = await update_account_avatar_impl(account_id=current_account.id, image_in=image_in, conn=conn)
     user_out: AccountOut = AccountOut(**user_db.dict())

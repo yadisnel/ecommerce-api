@@ -7,7 +7,7 @@ from databases import DatabaseURL
 # db_port: int = 27017
 # db_user_db = "admin"
 
-#Database config prod
+# Database config prod
 db_host: str = '18.158.96.25'
 db_port: int = 27017
 admin_user: str = "admin"
@@ -29,10 +29,10 @@ shops_collection_name = "shops"
 products_collection_name = "products"
 categories_collection_name = "categories"
 zones_collection_name = "zones"
+countries_collection_name = "countries"
 product_favorites_collection_name = "product_favorites"
 conversations_collection_name = "conversations"
 messges_collection_name = "messages"
-
 
 # Broker config
 broker_host: str = "192.168.1.104"
@@ -55,6 +55,7 @@ url_users_images_on_s3_thumb: str = "users/thumb/"
 
 # Payload types
 PAYLOAD_TYPE_ZONE: str = "PAYLOAD_TYPE_ZONE"
+PAYLOAD_TYPE_COUNTRY: str = "PAYLOAD_TYPE_COUNTRY"
 PAYLOAD_TYPE_PRODUCT: str = "PAYLOAD_TYPE_PRODUCT"
 PAYLOAD_TYPE_CATEGORY: str = "PAYLOAD_TYPE_CATEGORY"
 
@@ -86,4 +87,4 @@ shop_max_images_count = 10
 # Product images
 product_max_images_count = 10
 
-bucket_config = BucketConfig(bucket_name="ecommercedb", region_name='eu-central-1')
+bucket_config = BucketConfig(bucket_name="ecommerce-db", region_name='eu-central-1')

@@ -1,7 +1,7 @@
 from models.rwmodels import RwModel
 
 
-class Image(RwModel):
+class ImageDb(RwModel):
     id: str = None
     original_key: str = None
     original_width: int = None

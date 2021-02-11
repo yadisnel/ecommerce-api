@@ -12,7 +12,7 @@ from models.categories import CategoryIn, CategoryOut, SubCategoryIn
 from models.accounts import AccountDb
 from routers.dasboard.dashboard import router
 from routers.accounts import get_current_active_admin_user
-from validations.categories import RequestAddCategory, RequestAddSubCategory
+from erequests.categories import RequestAddCategory, RequestAddSubCategory
 from crud.categories import get_all_categories_impl
 import uuid
 import os
@@ -111,8 +111,3 @@ async def remove_sub_category(current_user: AccountDb = Depends(get_current_acti
         )
     return await remove_sub_category_impl(category_id=category_id, sub_category_id=sub_category_id, conn=conn)
 
-
-@router.get("/dashboard/categories/", response_model=List[CategoryOut])
-async def list_categories(current_user: AccountDb = Depends(get_current_active_admin_user),
-                          conn: AsyncIOMotorClient = Depends(get_database)):
-    return await get_all_categories_impl(conn=conn)

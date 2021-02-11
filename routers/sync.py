@@ -8,7 +8,7 @@ from models.accounts import AccountDb
 from routers.accounts import get_current_active_user
 from crud.categories import sync_categories_impl
 from crud.categories import SyncCategoriesOut
-from validations.sync import RequestSync
+from erequests.sync import RequestSync
 from models.zones import SyncZonesOut
 from crud.zones import sync_zones_impl
 

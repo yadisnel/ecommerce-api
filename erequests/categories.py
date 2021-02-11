@@ -10,3 +10,7 @@ class RequestAddCategory(RwModel):
 
 class RequestAddSubCategory(RwModel):
     name: str = Field(..., title="Sub-category's name")
+
+
+class RequestListCategories(RwModel):
+    country_iso_code: str = Field(..., title="Country iso code")

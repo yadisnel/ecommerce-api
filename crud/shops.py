@@ -4,7 +4,7 @@ from core.config import bucket_config
 from core.config import ecommerce_database_name, shops_collection_name
 from core.mongodb import AsyncIOMotorClient
 from core.s3 import delete_object_on_s3
-from models.images import Image
+from models.images import ImageDb
 from models.shops import ShopOut, ShopIn
 
 
@@ -26,7 +26,7 @@ async def get_shop_by_id_impl(shop_id: str, conn: AsyncIOMotorClient) -> ShopOut
         return shop
 
 
-async def add_image_to_shop_impl(shop_id: str, image_in: Image, conn: AsyncIOMotorClient) -> ShopOut:
+async def add_image_to_shop_impl(shop_id: str, image_in: ImageDb, conn: AsyncIOMotorClient) -> ShopOut:
     query = {"$push": {"images": image_in.dict()}}
     await conn[ecommerce_database_name][shops_collection_name].update_one({"_id": ObjectId(shop_id)}, query)
     return await get_shop_by_id_impl(shop_id=shop_id, conn=conn)

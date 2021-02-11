@@ -21,6 +21,19 @@ class CategoryIn(RwModel):
     created: datetime = None
     modified: datetime = None
     deleted: bool = None
+    country_iso_code: str = None
+
+
+class CategoryDb(RwModel):
+    id: str = None
+    local_id: str = None
+    name: str = None
+    n_order: int = 0
+    sub_categories: List[SubCategoryOut] = None
+    created: datetime = None
+    modified: datetime = None
+    deleted: bool = None
+    country_iso_code: str = None
 
 
 class CategoryOut(RwModel):

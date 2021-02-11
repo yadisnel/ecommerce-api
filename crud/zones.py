@@ -11,7 +11,7 @@ from core.mongodb import AsyncIOMotorClient
 from models.mqtt_payloads import MqttPayload
 from models.zones import ZoneIn, ZoneOut
 from models.zones import SyncZonesOut
-from validations.sync import RequestSync
+from erequests.sync import RequestSync
 
 
 async def add_zone_impl(zone_in: ZoneIn, conn: AsyncIOMotorClient) -> ZoneOut:

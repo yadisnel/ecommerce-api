@@ -1,7 +1,7 @@
 from pydantic import Field
 
 from models.rwmodels import RwModel
-from validations.locations import RequestLocation
+from erequests.locations import RequestLocation
 
 
 class RequestUpdateShop(RwModel):
