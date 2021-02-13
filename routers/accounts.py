@@ -26,6 +26,7 @@ from crud.accounts import get_account_by_facebook_id_impl, add_account_impl, \
  get_standard_account_by_email_impl, update_account_avatar_impl
 from crud.pending_accounts import add_standard_pending_account_with_email, get_pending_account_by_email_impl, \
     delete_standard_pending_account_by_email
+from models.pending_accounts import StandardPendingAccountDb
 from models.tokens import Token, TokenData
 from models.accounts import AccountDb, AccountOut, AccountIn, StandardAccountInfo
 from core.config import url_users_images_on_s3_thumb, url_users_images_on_s3_big, bucket_config
@@ -239,6 +240,11 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         return {"access_token": access_token, "token_type": "bearer"}
     user_in_db = await get_standard_account_by_email_impl(conn=conn, email=form_data.username)
     if not user_in_db or not verify_password(form_data.password, user_in_db.standard_account_info.hashed_password):
+        user_pending: StandardPendingAccountDb  = await get_pending_account_by_email_impl(email=form_data.username, conn=conn)
+        if user_pending is not None:
+            raise HTTPException(
+                status_code=HTTP_412_PRECONDITION_FAILED, detail="confirmation email pending"
+            )
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST, detail="Incorrect email or password"
         )
