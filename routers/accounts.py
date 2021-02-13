@@ -240,10 +240,11 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         return {"access_token": access_token, "token_type": "bearer"}
     user_in_db = await get_standard_account_by_email_impl(conn=conn, email=form_data.username)
     if not user_in_db or not verify_password(form_data.password, user_in_db.standard_account_info.hashed_password):
-        user_pending: StandardPendingAccountDb  = await get_pending_account_by_email_impl(email=form_data.username, conn=conn)
+        user_pending: StandardPendingAccountDb = await get_pending_account_by_email_impl(email=form_data.username,
+                                                                                         conn=conn)
         if user_pending is not None:
             raise HTTPException(
-                status_code=HTTP_412_PRECONDITION_FAILED, detail="confirmation email pending"
+                status_code=HTTP_412_PRECONDITION_FAILED, detail="Confirmation email pending"
             )
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST, detail="Incorrect email or password"
