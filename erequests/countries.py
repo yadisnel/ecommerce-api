@@ -4,14 +4,12 @@ from models.rwmodels import RwModel
 
 
 class RequestAddCountry(RwModel):
-    client_request_id: str = Field(..., title="Client request id")
     name: str = Field(..., title="Country name")
     order_n: int = Field(..., title="Country order_n", ge=0)
     country_iso_code: str = Field(..., title="Country ISO code")
 
 
 class RequestUpdateCountry(RwModel):
-    client_request_id: str = Field(..., title="Client request id")
     name: str = Field(..., title="Country name")
     order_n: int = Field(..., title="Country order_n", ge=0)
 

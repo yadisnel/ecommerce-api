@@ -4,7 +4,6 @@ from models.rwmodels import RwModel
 
 
 class RequestAddCategory(RwModel):
-    client_request_id: str = Field(..., title="Client request id")
     order_n: int = Field(..., title="Category's order_n")
     name: str = Field(..., title="Category's name")
     country_iso_code: str = Field(..., title="Country ISO code")

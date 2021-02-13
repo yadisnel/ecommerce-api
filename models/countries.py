@@ -14,7 +14,6 @@ class CountryIn(RwModel):
 
 class CountryDb(RwModel):
     id: str = None
-    client_request_id: str = None
     name: str = None
     order_n: int = None
     country_iso_code: str = None

@@ -29,7 +29,6 @@ async def add_category(current_user: AccountDb = Depends(get_current_active_admi
             detail="Category already exist.",
         )
     category_in: CategoryIn = CategoryIn()
-    category_in.local_id = e_request.client_request_id
     category_in.name = e_request.name
     category_in.sub_categories = []
     utc_now: datetime = datetime.utcnow()
