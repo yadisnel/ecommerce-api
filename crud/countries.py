@@ -8,13 +8,22 @@ from core.config import ecommerce_database_name, countries_collection_name, PAYL
 from core.emqx import get_all_users_topic
 from core.emqx import mqtt_client
 from core.mongodb import AsyncIOMotorClient
+from erequests.countries import RequestAddCountry, RequestUpdateCountry, RequestFilterCountries
 from models.countries import CountryIn, CountryOut
 from models.mqtt_payloads import MqttPayload
 from models.countries import SyncCountriesOut
 from erequests.sync import RequestSync
 
 
-async def add_country_impl(country_in: CountryIn, conn: AsyncIOMotorClient) -> CountryOut:
+async def add_country_impl(e_request: RequestAddCountry, conn: AsyncIOMotorClient) -> CountryOut:
+    country_in: CountryIn = CountryIn()
+    country_in.name = e_request.name
+    country_in.order_n = e_request.order_n
+    country_in.country_iso_code = e_request.country_iso_code
+    utc_now: datetime = datetime.utcnow()
+    country_in.created = utc_now
+    country_in.modified = utc_now
+    country_in.deleted = False
     row = await conn[ecommerce_database_name][countries_collection_name].insert_one(country_in.dict())
     country = await get_country_by_id_impl(country_id=str(row.inserted_id), conn=conn)
     mqtt_payload: MqttPayload = MqttPayload()
@@ -22,6 +31,15 @@ async def add_country_impl(country_in: CountryIn, conn: AsyncIOMotorClient) -> C
     mqtt_payload.payload = country.json()
     mqtt_client.publish(topic=get_all_users_topic(), payload=mqtt_payload.json(), qos=2)
     return country
+
+
+async def get_country_by_id_with_deleted_impl(country_id: str, conn: AsyncIOMotorClient) -> CountryOut:
+    query = {"_id": ObjectId(country_id)}
+    row = await conn[ecommerce_database_name][countries_collection_name].find_one(query)
+    if row:
+        country_out = CountryOut(**row)
+        country_out.id = str(row['_id'])
+        return country_out
 
 
 async def get_country_by_id_impl(country_id: str, conn: AsyncIOMotorClient) -> CountryOut:
@@ -34,10 +52,16 @@ async def get_country_by_id_impl(country_id: str, conn: AsyncIOMotorClient) -> C
 
 
 async def remove_country_by_id_impl(conn: AsyncIOMotorClient, country_id: str):
-    await conn[ecommerce_database_name][countries_collection_name].update_one({"_id": ObjectId(country_id)},
-                                                                              {"$set": {"deleted": True,
-                                                                                        "modified": datetime.utcnow()}})
-    country = await get_country_by_id_impl(country_id=country_id, conn=conn)
+    await conn[ecommerce_database_name][countries_collection_name].update_one(
+        {"_id": ObjectId(country_id)},
+        {"$set":
+             {
+                 "deleted": True,
+                 "modified": datetime.utcnow()
+             }
+        }
+    )
+    country = await get_country_by_id_with_deleted_impl(country_id=country_id, conn=conn)
     mqtt_payload: MqttPayload = MqttPayload()
     mqtt_payload.payload_type = PAYLOAD_TYPE_COUNTRY
     mqtt_payload.payload = country.json()
@@ -63,6 +87,15 @@ async def exists_country_by_iso_code_impl(country_iso_code: str,
     return False
 
 
+async def exists_country_by_iso_code_with_deleted_impl(country_iso_code: str,
+                                          conn: AsyncIOMotorClient) -> bool:
+    query = {"country_iso_code": country_iso_code}
+    count: int = await conn[ecommerce_database_name][countries_collection_name].count_documents(query)
+    if count > 0:
+        return True
+    return False
+
+
 async def exists_country_by_id_impl(country_id: str,
                                     conn: AsyncIOMotorClient) -> bool:
     query = {"_id": ObjectId(country_id), "deleted": False}
@@ -73,16 +106,14 @@ async def exists_country_by_id_impl(country_id: str,
 
 
 async def update_country_impl(country_id: str,
-                              name: str, country_iso_code: str,
-                              order_n: int,
+                              e_request: RequestUpdateCountry,
                               conn: AsyncIOMotorClient):
     await conn[ecommerce_database_name][countries_collection_name].update_one(
         {"_id": ObjectId(country_id)},
         {"$set":
             {
-                "name": name,
-                "country_iso_code": country_iso_code,
-                "n_order": order_n,
+                "name": e_request.name,
+                "n_order": e_request.order_n,
                 "modified": datetime.utcnow()
             }
         }
@@ -96,9 +127,14 @@ async def update_country_impl(country_id: str,
     return country
 
 
-async def get_all_countries_impl(conn: AsyncIOMotorClient) -> List[CountryOut]:
+async def get_all_countries_impl(filter_countries: RequestFilterCountries, conn: AsyncIOMotorClient) -> List[CountryOut]:
     countries: List[CountryOut] = []
-    query = {}
+    or_array = []
+    if filter_countries.load_not_deleted or (not filter_countries.load_not_deleted and not filter_countries.load_deleted):
+        or_array.append({'deleted': False})
+    if filter_countries.load_deleted:
+        or_array.append({'deleted': True})
+    query = {'$or': or_array}
     rows = conn[ecommerce_database_name][countries_collection_name].find(query)
     async for row in rows:
         country_out = CountryOut(**row)

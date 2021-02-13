@@ -1,6 +1,8 @@
 import imghdr
 import os
 import uuid
+from typing import List
+
 import jwt
 from fastapi import APIRouter
 from fastapi import Body
@@ -24,8 +26,11 @@ from core.path import root_path
 from core.security import is_strong_password, verify_password
 from crud.accounts import get_account_by_facebook_id_impl, add_account_impl, \
  get_standard_account_by_email_impl, update_account_avatar_impl
+from crud.countries import exists_country_by_iso_code_impl, get_all_countries_impl
 from crud.pending_accounts import add_standard_pending_account_with_email, get_pending_account_by_email_impl, \
     delete_standard_pending_account_by_email
+from erequests.countries import RequestFilterCountries
+from models.countries import CountryOut
 from models.pending_accounts import StandardPendingAccountDb
 from models.tokens import Token, TokenData
 from models.accounts import AccountDb, AccountOut, AccountIn, StandardAccountInfo
@@ -273,6 +278,7 @@ async def register_with_email(e_request: RequestRegisterAccountWithEmail = Body(
                     status_code=HTTP_412_PRECONDITION_FAILED,
                     detail="User with this email already exists",
                 )
+
             if e_request.locale != "es_ES" and \
                     e_request.locale != "en_US" \
                     and e_request.locale != "sr_Latn"\
@@ -282,15 +288,28 @@ async def register_with_email(e_request: RequestRegisterAccountWithEmail = Body(
                     status_code=HTTP_400_BAD_REQUEST,
                     detail="Invalid locale. Only 'es_ES',  'en_US', 'sr_Latn' and 'fr_CA' are supported.",
                 )
-            if e_request.country_iso_code != "CU" \
-                    and e_request.country_iso_code != "US" \
-                    and e_request.country_iso_code != "SR" \
-                    and e_request.country_iso_code != "UY"\
-                    and e_request.country_iso_code != "ES"\
-                    and e_request.country_iso_code != "CA":
+            exists_country: bool = await exists_country_by_iso_code_impl(country_iso_code=e_request.country_iso_code, conn=conn)
+            if not exists_country:
+                filter_countries: RequestFilterCountries = RequestFilterCountries(load_deleted=False,
+                                                                                  load_not_deleted=True)
+                all_countries: List[CountryOut] = await get_all_countries_impl(filter_countries=filter_countries,
+                                                                               conn=conn)
+                countries_str: str = "Invalid country_iso_code. Only "
+                iter_count: int = 0
+                for country in all_countries:
+                    if iter_count > 0:
+                        countries_str = countries_str + ","
+                    countries_str = countries_str + "'" + country.country_iso_code + "'"
+                    iter_count = iter_count + 1
+                if len(all_countries) >= 2:
+                    countries_str = countries_str + " are supported"
+                elif len(all_countries) == 1:
+                    countries_str = countries_str + " is supported"
+                elif len(all_countries) == 0:
+                    countries_str = " No country is supported actually."
                 raise HTTPException(
                     status_code=HTTP_400_BAD_REQUEST,
-                    detail="Invalid country_iso_code. Only 'CU','US', 'UY', 'SR','ES', and 'CA' are supported.",
+                    detail=countries_str,
                 )
             if not is_strong_password(password=e_request.password):
                 raise HTTPException(

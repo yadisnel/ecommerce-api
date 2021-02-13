@@ -5,7 +5,7 @@ from typing import List
 
 class CountryIn(RwModel):
     name: str = None
-    n_order: int = None
+    order_n: int = None
     country_iso_code: str = None
     created: datetime = None
     modified: datetime = None
@@ -14,8 +14,9 @@ class CountryIn(RwModel):
 
 class CountryDb(RwModel):
     id: str = None
+    client_request_id: str = None
     name: str = None
-    n_order: int = None
+    order_n: int = None
     country_iso_code: str = None
     created: datetime = None
     modified: datetime = None
@@ -25,7 +26,7 @@ class CountryDb(RwModel):
 class CountryOut(RwModel):
     id: str = None
     name: str = None
-    n_order: int = None
+    order_n: int = None
     country_iso_code: str = None
     created: datetime = None
     modified: datetime = None
@@ -35,4 +36,3 @@ class CountryOut(RwModel):
 class SyncCountriesOut(RwModel):
     countries: List[CountryOut] = None
     is_last_offset: bool = None
-

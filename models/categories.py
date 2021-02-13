@@ -14,7 +14,6 @@ class SubCategoryOut(RwModel):
 
 
 class CategoryIn(RwModel):
-    local_id: str = None
     name: str = None
     n_order: int = 0
     sub_categories: List[SubCategoryIn] = None
@@ -26,7 +25,6 @@ class CategoryIn(RwModel):
 
 class CategoryDb(RwModel):
     id: str = None
-    local_id: str = None
     name: str = None
     n_order: int = 0
     sub_categories: List[SubCategoryOut] = None
@@ -38,7 +36,6 @@ class CategoryDb(RwModel):
 
 class CategoryOut(RwModel):
     id: str = None
-    local_id: str = None
     name: str = None
     n_order: int = 0
     sub_categories: List[SubCategoryOut] = None

@@ -29,7 +29,7 @@ async def add_zone(current_user: AccountDb = Depends(get_current_active_admin_us
         )
     zone_in: ZoneIn = ZoneIn()
     zone_in.name = req.name
-    zone_in.order = req.order
+    zone_in.order = req.order_n
     utc_now: datetime = datetime.utcnow()
     zone_in.created = utc_now
     zone_in.modified = utc_now
@@ -72,10 +72,4 @@ async def update_zone(current_user: AccountDb = Depends(get_current_active_admin
             status_code=HTTP_400_BAD_REQUEST,
             detail="Zone does not exist.",
         )
-    return await update_zone_name_impl(zone_id=zone_id, name=req.name, order=req.order, conn=conn)
-
-
-@router.get("/dashboard/zones/", response_model=List[ZoneOut])
-async def list_zones(current_user: AccountDb = Depends(get_current_active_admin_user),
-                     conn: AsyncIOMotorClient = Depends(get_database)):
-    return await get_all_zones_impl(conn=conn)
+    return await update_zone_name_impl(zone_id=zone_id, name=req.name, order=req.order_n, conn=conn)

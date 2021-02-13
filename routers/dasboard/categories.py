@@ -13,7 +13,6 @@ from models.accounts import AccountDb
 from routers.dasboard.dashboard import router
 from routers.accounts import get_current_active_admin_user
 from erequests.categories import RequestAddCategory, RequestAddSubCategory
-from crud.categories import get_all_categories_impl
 import uuid
 import os
 from datetime import datetime
@@ -21,21 +20,22 @@ from datetime import datetime
 
 @router.post("/dashboard/categories/", response_model=CategoryOut)
 async def add_category(current_user: AccountDb = Depends(get_current_active_admin_user),
-                       req: RequestAddCategory = Body(..., title="Category"),
+                       e_request: RequestAddCategory = Body(..., title="Category"),
                        conn: AsyncIOMotorClient = Depends(get_database)):
-    exists_category: bool = await exists_category_by_name_impl(name=req.name, conn=conn)
+    exists_category: bool = await exists_category_by_name_impl(name=e_request.name, conn=conn)
     if exists_category:
         raise HTTPException(
             status_code=HTTP_409_CONFLICT,
             detail="Category already exist.",
         )
     category_in: CategoryIn = CategoryIn()
-    category_in.local_id = req.local_id
-    category_in.name = req.name
+    category_in.local_id = e_request.client_request_id
+    category_in.name = e_request.name
     category_in.sub_categories = []
     utc_now: datetime = datetime.utcnow()
     category_in.created = utc_now
     category_in.modified = utc_now
+    category_in.country_iso_code = e_request.country_iso_code
     category_in.deleted = False
     return await add_category_impl(category_in=category_in, conn=conn)
 

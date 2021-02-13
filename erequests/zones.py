@@ -6,6 +6,7 @@ from models.rwmodels import RwModel
 class RequestAddZone(RwModel):
     name: str = Field(..., title="Zone name")
     order_n: int = Field(..., title="Zone order number", ge=0)
+    country_iso_code: str = Field(..., title="Country ISO code")
 
 
 class RequestUpdateZone(RwModel):
