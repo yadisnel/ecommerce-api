@@ -4,6 +4,7 @@ from fastapi import Body
 from fastapi import HTTPException
 from fastapi import Depends, Path
 from starlette.status import HTTP_200_OK
+from starlette.status import HTTP_404_NOT_FOUND
 from starlette.status import HTTP_409_CONFLICT
 from starlette.status import HTTP_400_BAD_REQUEST
 from core.generics import is_valid_oid
@@ -66,7 +67,7 @@ async def update_country(current_user: AccountDb = Depends(get_current_active_ad
     exists_country: bool = await exists_country_by_id_impl(country_id=country_id, conn=conn)
     if not exists_country:
         raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST,
+            status_code=HTTP_404_NOT_FOUND,
             detail="Country does not exist.",
         )
     return await update_country_impl(country_id=country_id, e_request=e_request, conn=conn)

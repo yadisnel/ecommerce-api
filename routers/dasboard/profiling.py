@@ -6,8 +6,8 @@ from starlette.status import HTTP_409_CONFLICT, HTTP_400_BAD_REQUEST
 
 from core.generics import is_valid_oid
 from crud.zones import add_zone_impl, remove_zone_by_id_impl
-from crud.zones import exists_zone_by_id_impl, exists_zone_by_name_impl
-from crud.zones import get_all_zones_impl, update_zone_name_impl
+from crud.zones import exists_zone_by_id_impl, exists_zone_by_name_and_country_iso_code_impl
+from crud.zones import get_all_zones_impl
 from core.mongodb import AsyncIOMotorClient, get_database
 from models.zones import ZoneIn, ZoneOut
 from models.accounts import AccountDb
@@ -21,7 +21,7 @@ from datetime import datetime
 async def add_zone(current_user: AccountDb = Depends(get_current_active_admin_user),
                    req: RequestAddZone = Body(..., title="Zone."),
                    conn: AsyncIOMotorClient = Depends(get_database)):
-    exists_zone: bool = await exists_zone_by_name_impl(name=req.name, conn=conn)
+    exists_zone: bool = await exists_zone_by_name_and_country_iso_code_impl(name=req.name, conn=conn)
     if exists_zone:
         raise HTTPException(
             status_code=HTTP_409_CONFLICT,

@@ -1,7 +1,9 @@
 from datetime import datetime
+from typing import List
 
 from models.rwmodels import RwModel
 from models.images import ImageDb
+from models.shops import ShopOut
 
 
 class StandardAccountInfo(RwModel):
@@ -41,6 +43,7 @@ class AccountOut(RwModel):
     modified_at: datetime = None
     disabled: bool = None
     country_iso_code: str = None
+    shops: List[ShopOut] = None
 
 
 class AccountDb(RwModel):
