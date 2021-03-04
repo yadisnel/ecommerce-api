@@ -6,90 +6,115 @@ from fastapi import APIRouter
 from fastapi import Body, HTTPException, Path
 from fastapi import Depends
 from fastapi import File, UploadFile
-from starlette.status import HTTP_400_BAD_REQUEST, HTTP_406_NOT_ACCEPTABLE
+from starlette.status import HTTP_400_BAD_REQUEST, HTTP_406_NOT_ACCEPTABLE, HTTP_401_UNAUTHORIZED
 
 from core.config import bucket_config
 from core.config import url_shops_images_on_s3_big, url_shops_images_on_s3_thumb
 from core.image import resize, size
 from core.path import root_path
 from core.s3 import write_object_to_s3
+from crud.countries import exists_country_by_iso_code_impl
 from crud.products import update_all_products_shop_info_impl
-from crud.shops import add_image_to_shop_impl, remove_image_from_shop_impl, exists_image_in_shop_by_id_impl
-from crud.shops import update_complete_shop_by_id
+from crud.shops import (
+    add_image_to_shop_impl, remove_image_from_shop_impl, exists_image_in_shop_by_id_impl,
+    add_shop_impl, get_shop_by_id_impl, update_shop_by_id, exists_shop_by_id_impl,
+    )
 from crud.shops import remove_all_images_from_shop_impl
 from core.mongodb import AsyncIOMotorClient, get_database
 from models.images import ImageDb
-from models.shops import ShopIn
+from models.shops import ShopOut, ShopDb
 from models.accounts import AccountDb
 from models.accounts import AccountOut
+from models.zones import ZoneDb
 from routers.accounts import get_current_active_user
-from erequests.shops import RequestUpdateShop
-from models.locations import Location
+from erequests.shops import RequestUpdateShop, RequestAddShop
 from core.generics import is_valid_oid
 from crud.zones import exists_zone_by_id_impl, get_zone_by_id_impl
-from models.zones import ZoneOut
 from core.config import image_thumb_resolution, image_big_resolution, shop_max_images_count
 from core.cloud_front import get_signed_url
 
 router = APIRouter()
 
 
-@router.put("/shops/{shop_id}", response_model=AccountOut)
-async def update_shop(current_user: AccountDb = Depends(get_current_active_user),
-                      shop_id: str = Path(..., title="Shop id"),
-                      req: RequestUpdateShop = Body(..., title="Shop"),
-                      conn: AsyncIOMotorClient = Depends(get_database)):
+@router.post("/shops", response_model=ShopOut)
+async def add_shop(current_user: AccountDb = Depends(get_current_active_user),
+                   e_request: RequestAddShop = Body(..., title="body request"),
+                   conn: AsyncIOMotorClient = Depends(get_database)):
     async with await conn.start_session() as s:
         async with s.start_transaction():
-            if not is_valid_oid(oid=req.zone_id):
+            if not is_valid_oid(oid=e_request.zone_id):
                 raise HTTPException(
                     status_code=HTTP_400_BAD_REQUEST,
                     detail="Invalid zone id.",
-                )
-            exists_zone: bool = await exists_zone_by_id_impl(zone_id=req.zone_id, conn=conn)
+                    )
+            exists_zone: bool = await exists_zone_by_id_impl(zone_id=e_request.zone_id, conn=conn)
             if not exists_zone:
                 raise HTTPException(
                     status_code=HTTP_400_BAD_REQUEST,
                     detail="Invalid zone id.",
-                )
-            if current_user.shop.id != shop_id:
+                    )
+            zone_db: ZoneDb = await get_zone_by_id_impl(zone_id=e_request.zone_id, conn=conn)
+            exists_country: bool = await exists_country_by_iso_code_impl(
+                country_iso_code=zone_db.country_iso_code, conn=conn)
+            if not exists_country:
                 raise HTTPException(
                     status_code=HTTP_400_BAD_REQUEST,
-                    detail="Invalid shop id.",
-                )
-            zone_out: ZoneOut = await get_zone_by_id_impl(zone_id=req.zone_id, conn=conn)
-            shop_in: ShopIn = ShopIn(**current_user.shop.dict())
-            shop_in.name = req.name
-            shop_in.zone_id = req.zone_id
-            shop_in.zone_name = zone_out.name
-            if req.location is not None:
-                location: Location = Location()
-                location.type = "Point"
-                location.coordinates = []
-                location.coordinates.append(req.location.lat)
-                location.coordinates.append(req.location.long)
-                shop_in.location = location
-            else:
-                shop_in.location = None
-            shop_in.images = current_user.shop.images
-            await update_all_products_shop_info_impl(user_id=current_user.id, location=shop_in.location,
-                                                     zone_id=req.zone_id, zone_name=zone_out.name,
-                                                     conn=conn)
-            user_db = await update_complete_shop_by_id(shop_id=shop_id, shop_in=shop_in, conn=conn)
-            user_out: AccountOut = AccountOut(**user_db.dict())
-            return user_out
+                    detail="Country code not supported.",
+                    )
+            return await add_shop_impl(e_request=e_request, account_id=current_user.id, conn=conn)
 
 
-@router.post("/shops/images/", response_model=AccountOut)
+@router.put("/shops/{shop_id}", response_model=ShopOut)
+async def update_shop(current_user: AccountDb = Depends(get_current_active_user),
+                      shop_id: str = Path(..., title="Shop id"),
+                      e_request: RequestUpdateShop = Body(..., title="body request"),
+                      conn: AsyncIOMotorClient = Depends(get_database)):
+    async with await conn.start_session() as s:
+        async with s.start_transaction():
+            if not is_valid_oid(oid=e_request.zone_id):
+                raise HTTPException(
+                    status_code=HTTP_400_BAD_REQUEST,
+                    detail="Invalid zone id.",
+                    )
+            exists_zone: bool = await exists_zone_by_id_impl(zone_id=e_request.zone_id, conn=conn)
+            if not exists_zone:
+                raise HTTPException(
+                    status_code=HTTP_400_BAD_REQUEST,
+                    detail="Invalid zone id.",
+                    )
+            shop_db: ShopDb = await get_shop_by_id_impl(shop_id=shop_id, conn=conn)
+            if current_user.id != shop_db.account_id:
+                raise HTTPException(
+                    status_code=HTTP_401_UNAUTHORIZED,
+                    detail="User is unauthorized to change this shop.",
+                    )
+            shop_db = await update_shop_by_id(shop_id=shop_id, e_request=e_request, conn=conn)
+            await update_all_products_shop_info_impl(shop_db=shop_db, conn=conn)
+            return ShopOut(**shop_db.dict())
+
+
+@router.post("/shops/{shop_id}/images/", response_model=ShopOut)
 async def add_image_to_shop(current_user: AccountDb = Depends(get_current_active_user),
+                            shop_id: str = Path(..., title="Shop id"),
                             file: UploadFile = File(...),
                             conn: AsyncIOMotorClient = Depends(get_database)):
-    if current_user.shop is None or current_user.shop.images is None or len(
-            current_user.shop.images) == shop_max_images_count:
+    exists_shop: bool = await exists_shop_by_id_impl(shop_id=shop_id, conn=conn)
+    if not exists_shop:
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail="Shop does not exists.",
+            )
+    shop_db: ShopDb = await get_shop_by_id_impl(shop_id=shop_id, conn=conn)
+    if current_user.id != shop_db.account_id:
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="User is unauthorized to change this shop.",
+            )
+    if len(shop_db.images) == shop_max_images_count:
         raise HTTPException(
             status_code=HTTP_406_NOT_ACCEPTABLE,
             detail="Only 10 images per shop are allowed.",
-        )
+            )
     filename_original = str(uuid.UUID(bytes=os.urandom(16), version=4)) + "_original_.png"
     filename_big = str(uuid.UUID(bytes=os.urandom(16), version=4)) + "_big_.png"
     filename_thumb = str(uuid.UUID(bytes=os.urandom(16), version=4)) + "_thumb_.png"
@@ -105,7 +130,7 @@ async def add_image_to_shop(current_user: AccountDb = Depends(get_current_active
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="File must be image type.",
-        )
+            )
     key_big = url_shops_images_on_s3_big + filename_big
     key_thumb = url_shops_images_on_s3_thumb + filename_thumb
     write_object_to_s3(
@@ -134,38 +159,62 @@ async def add_image_to_shop(current_user: AccountDb = Depends(get_current_active
     image_in.thumb_width = thumb_width
     image_in.thumb_height = thumb_height
     image_in.thumb_size = thumb_size
-    user_db = await add_image_to_shop_impl(
-        user_id=current_user.id,
+    shop_db = await add_image_to_shop_impl(
+        shop_id=current_user.id,
         image_in=image_in,
         conn=conn)
-    user_out: AccountOut = AccountOut(**user_db.dict())
-    return user_out
+    return ShopOut(**shop_db.dict())
 
 
-@router.delete("/shops/images/{image_id}", response_model=AccountOut)
+@router.delete("/shops/{shop_id}/images/{image_id}", response_model=ShopOut)
 async def remove_image_from_shop(current_user: AccountDb = Depends(get_current_active_user),
+                                 shop_id: str = Path(..., title="Shop id."),
                                  image_id: str = Path(..., title="Image id."),
                                  conn: AsyncIOMotorClient = Depends(get_database)):
+    exists_shop: bool = await exists_shop_by_id_impl(shop_id=shop_id, conn=conn)
+    if not exists_shop:
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail="Shop does not exists.",
+            )
+    shop_db: ShopDb = await get_shop_by_id_impl(shop_id=shop_id, conn=conn)
+    if current_user.id != shop_db.account_id:
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="User is unauthorized to change this shop.",
+            )
     exists_image: bool = await exists_image_in_shop_by_id_impl(
-        user_id=current_user.id,
+        shop_id=shop_db.id,
         image_id=image_id,
         conn=conn)
     if not exists_image:
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="Invalid image id.",
-        )
-    user_db = await remove_image_from_shop_impl(user_id=current_user.id,
+            )
+    user_db = await remove_image_from_shop_impl(shop_id=shop_id,
                                                 image_id=image_id,
                                                 conn=conn)
     user_out: AccountOut = AccountOut(**user_db.dict())
     return user_out
 
 
-@router.delete("/shops/images", response_model=AccountOut)
+@router.delete("/shops/{shop_id}/images", response_model=ShopOut)
 async def remove_all_images_from_shop(current_user: AccountDb = Depends(get_current_active_user),
+                                      shop_id: str = Path(..., title="Shop id."),
                                       conn: AsyncIOMotorClient = Depends(get_database)):
-    user_db = await remove_all_images_from_shop_impl(current_user=current_user,
+    exists_shop: bool = await exists_shop_by_id_impl(shop_id=shop_id, conn=conn)
+    if not exists_shop:
+        raise HTTPException(
+            status_code=HTTP_400_BAD_REQUEST,
+            detail="Shop does not exists.",
+            )
+    shop_db: ShopDb = await get_shop_by_id_impl(shop_id=shop_id, conn=conn)
+    if current_user.id != shop_db.account_id:
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="User is unauthorized to change this shop.",
+            )
+    shop_db = await remove_all_images_from_shop_impl(shop=shop_db,
                                                      conn=conn)
-    user_out: AccountOut = AccountOut(**user_db.dict())
-    return user_out
+    return ShopOut(**shop_db.dict())

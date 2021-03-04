@@ -8,8 +8,8 @@ class ZoneIn(RwModel):
     order_n: int = None
     created: datetime = None
     modified: datetime = None
-    deleted: bool = None
     country_iso_code: str = None
+    enabled: bool = None
 
 
 class ZoneDb(RwModel):
@@ -18,8 +18,8 @@ class ZoneDb(RwModel):
     order_n: int = None
     created: datetime = None
     modified: datetime = None
-    deleted: bool = None
     country_iso_code: str = None
+    enabled: bool = None
 
 
 class ZoneOut(RwModel):
@@ -28,7 +28,6 @@ class ZoneOut(RwModel):
     order_n: int = None
     created: datetime = None
     modified: datetime = None
-    deleted: bool = None
 
 
 class SyncZonesOut(RwModel):

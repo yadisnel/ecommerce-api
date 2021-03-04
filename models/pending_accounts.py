@@ -9,7 +9,6 @@ class StandardPendingAccountIn(RwModel):
     modified_at: datetime = None
     hashed_password: str = None
     security_code: str = None
-    country_iso_code: str = None
 
 
 class StandardPendingAccountDb(RwModel):
@@ -19,7 +18,6 @@ class StandardPendingAccountDb(RwModel):
     modified_at: datetime = None
     hashed_password: str = None
     security_code: str = None
-    country_iso_code: str = None
 
 
 class StandardPendingAccountOut(RwModel):

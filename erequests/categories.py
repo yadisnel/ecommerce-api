@@ -13,5 +13,15 @@ class RequestAddSubCategory(RwModel):
     name: str = Field(..., title="Sub-category's name")
 
 
-class RequestListCategories(RwModel):
-    country_iso_code: str = Field(..., title="Country iso code")
+class RequestEnableDisableCategory(RwModel):
+    enabled: bool = Field(..., title="Category is enabled")
+
+
+class RequestEnableDisableSubCategory(RwModel):
+    enabled: bool = Field(..., title="Sub category is enabled")
+
+
+class RequestFilterCategories(RwModel):
+    load_enabled: bool = Field(..., title="Load enabled zones.")
+    load_disabled: bool = Field(..., title="Load disabled zones.")
+    country_iso_code: str = Field(..., title="Country ISO code")

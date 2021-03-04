@@ -5,7 +5,7 @@ from fastapi import Path
 from starlette.status import HTTP_404_NOT_FOUND
 
 from crud.countries import exists_country_by_iso_code_impl
-from crud.zones import get_all_zones_impl
+from crud.zones import search_zones_impl
 from core.mongodb import AsyncIOMotorClient
 from core.mongodb import get_database
 from erequests.zones import RequestFilterZones
@@ -24,10 +24,10 @@ async def list_zones(country_iso_code: str = Path(..., title="Country iso code")
             status_code=HTTP_404_NOT_FOUND,
             detail="Country does not exist.",
         )
-    filter_zones: RequestFilterZones = RequestFilterZones(load_deleted=False,
-                                                          load_not_deleted=True,
+    filter_zones: RequestFilterZones = RequestFilterZones(load_enabled=True,
+                                                          load_disabled=False,
                                                           country_iso_code=country_iso_code)
-    zones_db: List[ZoneDb] = await get_all_zones_impl(conn=conn, filter_zones=filter_zones)
+    zones_db: List[ZoneDb] = await search_zones_impl(conn=conn, filter_zones=filter_zones)
     zones_out: List[ZoneOut] = []
     for zone_db in zones_db:
         zones_out.append(ZoneOut(**zone_db.dict()))

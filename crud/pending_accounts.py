@@ -13,7 +13,6 @@ async def add_standard_pending_account_with_email(e_request: RequestRegisterAcco
     standard_pending_in = StandardPendingAccountIn()
     standard_pending_in.email = e_request.email
     standard_pending_in.hashed_password = get_password_hash(password=e_request.password)
-    standard_pending_in.country_iso_code = e_request.country_iso_code
     now = datetime.now()
     date = datetime.timestamp(now)
     date = date * 1000

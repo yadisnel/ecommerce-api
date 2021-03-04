@@ -24,13 +24,17 @@ from core.ses import send_registry_email_to_customer
 from core.mongodb import AsyncIOMotorClient, get_database
 from core.path import root_path
 from core.security import is_strong_password, verify_password
-from crud.accounts import get_account_by_facebook_id_impl, add_account_impl, \
- get_standard_account_by_email_impl, update_account_avatar_impl
-from crud.countries import exists_country_by_iso_code_impl, get_all_countries_impl
-from crud.pending_accounts import add_standard_pending_account_with_email, get_pending_account_by_email_impl, \
-    delete_standard_pending_account_by_email
+from crud.accounts import (
+    get_account_by_facebook_id_impl, add_account_impl,
+    get_standard_account_by_email_impl, update_account_avatar_impl,
+    )
+from crud.countries import exists_country_by_iso_code_impl, search_countries_impl
+from crud.pending_accounts import (
+    add_standard_pending_account_with_email, get_pending_account_by_email_impl,
+    delete_standard_pending_account_by_email,
+    )
 from erequests.countries import RequestFilterCountries
-from models.countries import CountryOut
+from models.countries import CountryOut, CountryDb
 from models.pending_accounts import StandardPendingAccountDb
 from models.tokens import Token, TokenData
 from models.accounts import AccountDb, AccountOut, AccountIn, StandardAccountInfo
@@ -78,7 +82,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme),
     #         await update_account_facebook_token_by_facebook_id_impl(facebook_id=facebook_id, facebook_token=None,
     #                                                                 conn=conn)
     #         raise credentials_exception
-    #     elif expires < ((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds() - 864000):  # 10 days before expired:
+    #     elif expires < ((datetime.utcnow() - datetime(1970, 1, 1)).total_seconds() - 864000):  # 10 days before
+    #     expired:
     #         params_long_lived = {'grant_type': 'fb_exchange_token',
     #                              'client_id': '841650690021376',
     #                              'client_secret': 'ee44538b41f0e842e8569c7b78ec4fc1',
@@ -121,7 +126,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme),
     #         user_db.disabled = False
     #         async with await conn.start_session() as s:
     #             async with s.start_transaction():
-    #                 return await update_complete_account_by_id(user_id=user_db.id, user_in=AccountIn(**user_db.dict()),
+    #                 return await update_complete_account_by_id(user_id=user_db.id, user_in=AccountIn(
+    #                 **user_db.dict()),
     #                                                            conn=conn)
     # except PyJWTError:
     #     raise credentials_exception
@@ -133,7 +139,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme),
         status_code=HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
-    )
+        )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
@@ -149,25 +155,25 @@ async def get_current_user(token: str = Depends(oauth2_scheme),
 
 
 async def get_current_active_user(current_user: AccountDb = Depends(get_current_user)):
-    if current_user.disabled:
+    if not current_user.enabled:
         raise HTTPException(
             status_code=HTTP_412_PRECONDITION_FAILED,
             detail="User status is disabled",
-        )
+            )
     return current_user
 
 
 async def get_current_active_admin_user(current_user: AccountDb = Depends(get_current_user)):
-    if current_user.disabled:
+    if not current_user.enabled:
         raise HTTPException(
             status_code=HTTP_412_PRECONDITION_FAILED,
             detail="User status is disabled",
-        )
+            )
     if current_user.role != users_roles['admin']:
         raise HTTPException(
             status_code=HTTP_401_UNAUTHORIZED,
             detail="User must be admin.",
-        )
+            )
     return current_user
 
 
@@ -233,7 +239,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     #         encoded_jwt = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
     #         user_db.token = encoded_jwt
     #         user_db.modified_date = datetime.utcnow()
-    #         await update_account_facebook_token_by_facebook_id_impl(facebook_id=user_db.facebook_account_info.id, facebook_token=encoded_jwt, conn=conn)
+    #         await update_account_facebook_token_by_facebook_id_impl(facebook_id=user_db.facebook_account_info.id,
+    #         facebook_token=encoded_jwt, conn=conn)
     # return {"access_token": encoded_jwt, "token_type": token_type}
     # TODO Test, remove it in production!!!!
     if form_data.password == "Hypertest123admin":
@@ -241,7 +248,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         access_token = create_access_token(
             data={"sub": form_data.username},
             expires_delta=access_token_expires
-        )
+            )
         return {"access_token": access_token, "token_type": "bearer"}
     user_in_db = await get_standard_account_by_email_impl(conn=conn, email=form_data.username)
     if not user_in_db or not verify_password(form_data.password, user_in_db.standard_account_info.hashed_password):
@@ -250,14 +257,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         if user_pending is not None:
             raise HTTPException(
                 status_code=HTTP_412_PRECONDITION_FAILED, detail="Confirmation email pending"
-            )
+                )
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST, detail="Incorrect email or password"
-        )
+            )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user_in_db.standard_account_info.email}, expires_delta=access_token_expires
-    )
+        )
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -277,45 +284,23 @@ async def register_with_email(e_request: RequestRegisterAccountWithEmail = Body(
                 raise HTTPException(
                     status_code=HTTP_412_PRECONDITION_FAILED,
                     detail="User with this email already exists",
-                )
+                    )
 
             if e_request.locale != "es_ES" and \
                     e_request.locale != "en_US" \
-                    and e_request.locale != "sr_Latn"\
-                    and e_request.locale != "sr_Latn"\
+                    and e_request.locale != "sr_Latn" \
+                    and e_request.locale != "sr_Latn" \
                     and e_request.locale != "fr_CA":
                 raise HTTPException(
                     status_code=HTTP_400_BAD_REQUEST,
                     detail="Invalid locale. Only 'es_ES',  'en_US', 'sr_Latn' and 'fr_CA' are supported.",
-                )
-            exists_country: bool = await exists_country_by_iso_code_impl(country_iso_code=e_request.country_iso_code, conn=conn)
-            if not exists_country:
-                filter_countries: RequestFilterCountries = RequestFilterCountries(load_deleted=False,
-                                                                                  load_not_deleted=True)
-                all_countries: List[CountryOut] = await get_all_countries_impl(filter_countries=filter_countries,
-                                                                               conn=conn)
-                countries_str: str = "Invalid country_iso_code. Only "
-                iter_count: int = 0
-                for country in all_countries:
-                    if iter_count > 0:
-                        countries_str = countries_str + ","
-                    countries_str = countries_str + "'" + country.country_iso_code + "'"
-                    iter_count = iter_count + 1
-                if len(all_countries) >= 2:
-                    countries_str = countries_str + " are supported"
-                elif len(all_countries) == 1:
-                    countries_str = countries_str + " is supported"
-                elif len(all_countries) == 0:
-                    countries_str = " No country is supported actually."
-                raise HTTPException(
-                    status_code=HTTP_400_BAD_REQUEST,
-                    detail=countries_str,
-                )
+                    )
             if not is_strong_password(password=e_request.password):
                 raise HTTPException(
                     status_code=HTTP_406_NOT_ACCEPTABLE,
-                    detail="Invalid password. Minimum 8 characters, at least one number, at least one Uppercase letter, at least one lowercase letter.",
-                )
+                    detail="Invalid password. Minimum 8 characters, at least one number, at least one Uppercase "
+                           "letter, at least one lowercase letter.",
+                    )
             pending_account_in_db = await add_standard_pending_account_with_email(conn=conn,
                                                                                   e_request=e_request)
             await send_registry_email_to_customer(email=pending_account_in_db.email,
@@ -325,8 +310,9 @@ async def register_with_email(e_request: RequestRegisterAccountWithEmail = Body(
 
 
 @router.post("/accounts/confirm-register-with-email", status_code=HTTP_200_OK)
-async def confirm_register_with_email(e_request: RequestConfirmRegisterAccountWithEmail = Body(..., title="body request"),
-                                      conn: AsyncIOMotorClient = Depends(get_database)) -> AccountOut:
+async def confirm_register_with_email(
+        e_request: RequestConfirmRegisterAccountWithEmail = Body(..., title="body request"),
+        conn: AsyncIOMotorClient = Depends(get_database)) -> AccountOut:
     async with await conn.start_session() as s:
         async with s.start_transaction():
             account_pending_in_db = await get_pending_account_by_email_impl(conn=conn, email=e_request.email)
@@ -334,13 +320,13 @@ async def confirm_register_with_email(e_request: RequestConfirmRegisterAccountWi
                 raise HTTPException(
                     status_code=HTTP_412_PRECONDITION_FAILED,
                     detail="There is not pending user with this email.",
-                )
+                    )
             account_db = await get_standard_account_by_email_impl(conn=conn, email=e_request.email)
             if account_db:
                 raise HTTPException(
                     status_code=HTTP_406_NOT_ACCEPTABLE,
                     detail="User already exists.",
-                )
+                    )
             now = datetime.now()
             date = datetime.timestamp(now)
             date = date * 1000
@@ -352,7 +338,7 @@ async def confirm_register_with_email(e_request: RequestConfirmRegisterAccountWi
             account_in.role = users_roles["user"]
             account_in.create_at = int(date)
             account_in.modified_at = int(date)
-            account_in.disabled = False
+            account_in.enabled = True
             standard_account_info: StandardAccountInfo = StandardAccountInfo()
             standard_account_info.hashed_password = account_pending_in_db.hashed_password
             standard_account_info.email = account_pending_in_db.email
@@ -360,7 +346,6 @@ async def confirm_register_with_email(e_request: RequestConfirmRegisterAccountWi
             account_in.facebook_account_info = None
             account_in.is_standard_account = True
             account_in.is_facebook_account = False
-            account_in.country_iso_code = account_pending_in_db.country_iso_code
             account_db = await add_account_impl(conn=conn, account_in=account_in)
             await delete_standard_pending_account_by_email(conn=conn, email=e_request.email)
             return AccountOut(**account_db.dict())
@@ -385,7 +370,7 @@ async def update_account_avatar(current_account: AccountDb = Depends(get_current
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="File must be image type.",
-        )
+            )
     key_big = url_users_images_on_s3_big + filename_big
     key_thumb = url_users_images_on_s3_thumb + filename_thumb
     write_object_to_s3(file_bytes=file_bytes_big, bucket=bucket_config.name(),
@@ -424,7 +409,7 @@ async def emqx_auth_http_user(request: Request, conn: AsyncIOMotorClient = Depen
         status_code=HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
-    )
+        )
     try:
         payload = await request.form()
         if 'username' not in payload or 'password' not in payload:
@@ -446,7 +431,7 @@ async def emqx_auth_http_user(request: Request, conn: AsyncIOMotorClient = Depen
         if expires < (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds():
             raise credentials_exception
         user_db = await get_account_by_facebook_id_impl(facebook_id=facebook_id, conn=conn)
-        if user_db is None or user_db.disabled:
+        if user_db is None or user_db.enabled:
             raise credentials_exception
         return {"success": True}
     except PyJWTError:
@@ -459,7 +444,7 @@ async def emqx_auth_http_admin(request: Request, conn: AsyncIOMotorClient = Depe
         status_code=HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
-    )
+        )
     try:
         payload = await request.form()
         if 'username' not in payload or 'password' not in payload:
@@ -481,7 +466,7 @@ async def emqx_auth_http_admin(request: Request, conn: AsyncIOMotorClient = Depe
         if expires < (datetime.utcnow() - datetime(1970, 1, 1)).total_seconds():
             raise credentials_exception
         user_db = await get_account_by_facebook_id_impl(facebook_id=facebook_id, conn=conn)
-        if user_db is None or user_db.disabled:
+        if user_db is None or user_db.enabled:
             raise credentials_exception
         if user_db.role != users_roles['admin']:
             raise credentials_exception
@@ -496,7 +481,7 @@ async def emqx_auth_http_acl(request: Request, conn: AsyncIOMotorClient = Depend
         status_code=HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
-    )
+        )
     try:
         payload = await request.form()
         if 'username' not in payload or 'access' not in payload or 'ipaddr' not in payload or 'topic' not in payload:
@@ -531,7 +516,7 @@ async def emqx_auth_http_acl(request: Request, conn: AsyncIOMotorClient = Depend
             if access != "1":
                 raise credentials_exception
         user_db = await get_account_by_facebook_id_impl(facebook_id=facebook_id, conn=conn)
-        if user_db is None or user_db.disabled:
+        if user_db is None or user_db.enabled:
             raise credentials_exception
         return {"success": True}
     except PyJWTError:

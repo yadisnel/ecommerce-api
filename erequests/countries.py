@@ -4,9 +4,12 @@ from models.rwmodels import RwModel
 
 
 class RequestAddCountry(RwModel):
-    name: str = Field(..., title="Country name")
     order_n: int = Field(..., title="Country order_n", ge=0)
     country_iso_code: str = Field(..., title="Country ISO code")
+
+
+class RequestEnableDisableCountry(RwModel):
+    enabled: bool = Field(..., title="Country is enabled")
 
 
 class RequestUpdateCountry(RwModel):
@@ -20,6 +23,6 @@ class RequestSyncCountries(RwModel):
 
 
 class RequestFilterCountries(RwModel):
-    load_deleted: bool=Field(..., title="Load deleted countries.")
-    load_not_deleted: bool = Field(..., title="Load not deleted countries.")
+    load_disabled: bool=Field(..., title="Load disabled countries.")
+    load_enabled: bool = Field(..., title="Load enabled countries.")
 

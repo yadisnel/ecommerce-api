@@ -10,23 +10,23 @@ from core.emqx import get_user_topic
 from core.emqx import mqtt_client
 from core.mongodb import AsyncIOMotorClient
 from models.images import ImageDb
-from models.locations import Location
 from models.pagination_params import PaginationParams
 from models.products import ProductFavoriteIn, ProductFavoriteOut
 from models.products import ProductIn, ProductDb, ProductOut
 from erequests.paginations import RequestPagination
 from erequests.paginations import RequestPaginationParams
 from erequests.products import RequestSearchProducts
+from models.shops import ShopDb
 
 
-async def add_product_impl(user_id: str, product_in: ProductIn, conn: AsyncIOMotorClient) -> ProductDb:
+async def add_product_impl(account_id: str, product_in: ProductIn, conn: AsyncIOMotorClient) -> ProductDb:
     row = await conn[ecommerce_database_name][products_collection_name].insert_one(product_in.dict())
-    mqtt_client.publish(topic=get_user_topic(user_id=user_id), payload=json.dumps(product_in.dict()), qos=2)
-    return await get_product_by_id_impl(user_id=user_id, product_id=str(row.inserted_id), conn=conn)
+    mqtt_client.publish(topic=get_user_topic(account_id=account_id), payload=json.dumps(product_in.dict()), qos=2)
+    return await get_product_by_id_impl(account_id=account_id, product_id=str(row.inserted_id), conn=conn)
 
 
-async def get_product_by_id_impl(user_id: str, product_id: str, conn: AsyncIOMotorClient) -> ProductDb:
-    query = {"_id": ObjectId(product_id), "user_id": user_id}
+async def get_product_by_id_impl(account_id: str, product_id: str, conn: AsyncIOMotorClient) -> ProductDb:
+    query = {"_id": ObjectId(product_id), "account_id": account_id}
     row = await conn[ecommerce_database_name][products_collection_name].find_one(query)
     if row:
         product_db = ProductDb(**row)
@@ -34,60 +34,59 @@ async def get_product_by_id_impl(user_id: str, product_id: str, conn: AsyncIOMot
         return product_db
 
 
-async def exists_product_by_id_impl(user_id: str, product_id: str, conn: AsyncIOMotorClient) -> bool:
-    query = {"_id": ObjectId(product_id), "user_id": user_id, "deleted": False}
+async def exists_product_by_id_impl(account_id: str, product_id: str, conn: AsyncIOMotorClient) -> bool:
+    query = {"_id": ObjectId(product_id), "account_id": account_id, "deleted": False}
     count: int = await conn[ecommerce_database_name][products_collection_name].count_documents(query)
     if count > 0:
         return True
     return False
 
 
-async def update_complete_product_by_id(user_id: str, product_id: str, product_in: ProductIn,
+async def update_complete_product_by_id(account_id: str, product_id: str, product_in: ProductIn,
                                         conn: AsyncIOMotorClient) -> ProductDb:
     query = {'$set': product_in.dict()}
     await conn[ecommerce_database_name][products_collection_name].update_one(
-        {"_id": ObjectId(product_id), "user_id": user_id}, query)
-    mqtt_client.publish(topic=get_user_topic(user_id=user_id), payload=json.dumps(product_in.dict()), qos=2)
-    return await get_product_by_id_impl(user_id=user_id, product_id=product_id, conn=conn)
+        {"_id": ObjectId(product_id), "account_id": account_id}, query)
+    mqtt_client.publish(topic=get_user_topic(account_id=account_id), payload=json.dumps(product_in.dict()), qos=2)
+    return await get_product_by_id_impl(account_id=account_id, product_id=product_id, conn=conn)
 
 
-async def update_all_products_shop_info_impl(user_id: str, location: Location, zone_id: str, zone_name: str,
-                                             conn: AsyncIOMotorClient):
-    query = {'$set': {"location": location.dict(), "zone_id": zone_id, "zone_name": zone_name}}
-    await conn[ecommerce_database_name][products_collection_name].update_many({"user_id": user_id}, query)
+async def update_all_products_shop_info_impl(shop_db:ShopDb, conn: AsyncIOMotorClient):
+    query = {'$set': {"location": shop_db.location, "zone_id": shop_db.zone_id, "zone_name": shop_db.zone_name}}
+    await conn[ecommerce_database_name][products_collection_name].update_many({"account_id": shop_db.account_id, "shop_id":shop_db.id}, query)
 
 
-async def remove_product_by_id_impl(conn: AsyncIOMotorClient, user_id: str, product_id: str):
-    query = {"_id": ObjectId(product_id), "user_id": user_id}
+async def remove_product_by_id_impl(conn: AsyncIOMotorClient, account_id: str, product_id: str):
+    query = {"_id": ObjectId(product_id), "account_id": account_id}
     await conn[ecommerce_database_name][products_collection_name].delete_one(query)
 
 
-async def add_image_to_product_impl(user_id: str, product_id: str, image_in: ImageDb,
+async def add_image_to_product_impl(account_id: str, product_id: str, image_in: ImageDb,
                                     conn: AsyncIOMotorClient) -> ProductDb:
     query = {"$push": {"images": image_in.dict()}}
     await conn[ecommerce_database_name][products_collection_name].update_one(
-        {"_id": ObjectId(product_id), "user_id": user_id}, query)
-    return await get_product_by_id_impl(user_id=user_id, product_id=product_id, conn=conn)
+        {"_id": ObjectId(product_id), "account_id": account_id}, query)
+    return await get_product_by_id_impl(account_id=account_id, product_id=product_id, conn=conn)
 
 
-async def remove_image_from_product_impl(user_id: str, product_id: str, image_id: str,
+async def remove_image_from_product_impl(account_id: str, product_id: str, image_id: str,
                                          conn: AsyncIOMotorClient) -> ProductDb:
     query = {"$pull": {"images": {"id": image_id}}}
     await conn[ecommerce_database_name][products_collection_name].update_one(
-        {"_id": ObjectId(product_id), "user_id": user_id}, query)
-    return await get_product_by_id_impl(user_id=user_id, product_id=user_id, conn=conn)
+        {"_id": ObjectId(product_id), "account_id": account_id}, query)
+    return await get_product_by_id_impl(account_id=account_id, product_id=account_id, conn=conn)
 
 
-async def exists_image_in_product_impl(user_id: str, product_id: str, image_id: str, conn: AsyncIOMotorClient) -> bool:
-    query = {'$and': [{'_id': ObjectId(product_id)}, {"user_id": user_id}, {"images.id": image_id}]}
+async def exists_image_in_product_impl(account_id: str, product_id: str, image_id: str, conn: AsyncIOMotorClient) -> bool:
+    query = {'$and': [{'_id': ObjectId(product_id)}, {"account_id": account_id}, {"images.id": image_id}]}
     count: int = await conn[ecommerce_database_name][products_collection_name].count_documents(query)
     if count > 0:
         return True
     return False
 
 
-async def exists_product_favorited_impl(user_id: str, product_id: str, conn: AsyncIOMotorClient) -> bool:
-    query = {"product_id": product_id, "user_id": user_id}
+async def exists_product_favorited_impl(account_id: str, product_id: str, conn: AsyncIOMotorClient) -> bool:
+    query = {"product_id": product_id, "account_id": account_id}
     count: int = await conn[ecommerce_database_name][product_favorites_collection_name].count_documents(query)
     if count > 0:
         return True
@@ -96,20 +95,20 @@ async def exists_product_favorited_impl(user_id: str, product_id: str, conn: Asy
 
 async def set_product_favorited_impl(product_favorited: ProductFavoriteIn,
                                      conn: AsyncIOMotorClient) -> ProductFavoriteOut:
-    exists_favorited: bool = await exists_product_favorited_impl(user_id=product_favorited.user_id,
+    exists_favorited: bool = await exists_product_favorited_impl(account_id=product_favorited.account_id,
                                                                  product_id=product_favorited.product_id, conn=conn)
     if exists_favorited:
         query = {'$set': {"favorited": product_favorited.favorite}}
         await conn[ecommerce_database_name][product_favorites_collection_name].update_one(
-            {"product_id": product_favorited.product_id, "user_id": product_favorited.user_id}, query)
+            {"product_id": product_favorited.product_id, "account_id": product_favorited.account_id}, query)
     else:
         await conn[ecommerce_database_name][product_favorites_collection_name].insert_one(product_favorited.dict())
-    return await get_product_favorited_impl(user_id=product_favorited.user_id, product_id=product_favorited.product_id,
+    return await get_product_favorited_impl(account_id=product_favorited.account_id, product_id=product_favorited.product_id,
                                             conn=conn)
 
 
-async def get_product_favorited_impl(user_id: str, product_id: str, conn: AsyncIOMotorClient) -> ProductFavoriteOut:
-    query = {"user_id": user_id, "product_id": product_id}
+async def get_product_favorited_impl(account_id: str, product_id: str, conn: AsyncIOMotorClient) -> ProductFavoriteOut:
+    query = {"account_id": account_id, "product_id": product_id}
     row = await conn[ecommerce_database_name][products_collection_name].find_one(query)
     if row:
         product_favorited = ProductFavoriteOut(**row)
@@ -117,9 +116,9 @@ async def get_product_favorited_impl(user_id: str, product_id: str, conn: AsyncI
         return product_favorited
 
 
-async def get_user_products_favorited_in_array(user_id: str, products_ids: List[str], conn: AsyncIOMotorClient) -> Dict:
+async def get_user_products_favorited_in_array(account_id: str, products_ids: List[str], conn: AsyncIOMotorClient) -> Dict:
     resp: Dict = {}
-    and_array = [{"user_id": user_id}, {"product_id": {"$in": products_ids}}]
+    and_array = [{"account_id": account_id}, {"product_id": {"$in": products_ids}}]
     query = {'$and': and_array}
     rows = conn[ecommerce_database_name][products_collection_name].find(query)
     async for row in rows:
@@ -129,7 +128,7 @@ async def get_user_products_favorited_in_array(user_id: str, products_ids: List[
 
 async def search_products_pagination_params_impl(request_pagination_params: RequestPaginationParams,
                                                  filter: RequestSearchProducts,
-                                                 user_id: str,
+                                                 account_id: str,
                                                  conn: AsyncIOMotorClient) -> PaginationParams:
     and_array = []
     and_enabled = False
@@ -138,7 +137,7 @@ async def search_products_pagination_params_impl(request_pagination_params: Requ
             and_array.append({"zone_id": filter.zone_id})
             and_enabled = True
         if filter.own is not None and filter.own:
-            and_array.append({"user_id": user_id})
+            and_array.append({"account_id": account_id})
             and_enabled = True
         if filter.category_id is not None:
             and_array.append({"category_id": filter.category_id})
@@ -176,7 +175,7 @@ async def search_products_pagination_params_impl(request_pagination_params: Requ
     return pagination_params
 
 
-async def search_products_impl(user_id: str, pagination: RequestPagination, filter: RequestSearchProducts,
+async def search_products_impl(account_id: str, pagination: RequestPagination, filter: RequestSearchProducts,
                                conn: AsyncIOMotorClient) -> List[ProductOut]:
     resp: List[ProductOut] = []
     and_array = []
@@ -187,7 +186,7 @@ async def search_products_impl(user_id: str, pagination: RequestPagination, filt
             and_array.append({"zone_id": filter.zone_id})
             and_enabled = True
         if filter.own is not None and filter.own:
-            and_array.append({"user_id": user_id})
+            and_array.append({"account_id": account_id})
             and_enabled = True
         if filter.category_id is not None:
             and_array.append({"category_id": filter.category_id})
@@ -223,7 +222,7 @@ async def search_products_impl(user_id: str, pagination: RequestPagination, filt
         product_out.id = str(row['_id'])
         products_ids.append(product_out.id)
         resp.append(product_out)
-    dict_favorited: Dict = await get_user_products_favorited_in_array(user_id=user_id, products_ids=products_ids,
+    dict_favorited: Dict = await get_user_products_favorited_in_array(account_id=account_id, products_ids=products_ids,
                                                                       conn=conn)
     for product_out in resp:
         if product_out.id in dict_favorited:

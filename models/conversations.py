@@ -10,6 +10,7 @@ class ConversationIn(RwModel):
     created: datetime = None
     modified: datetime = None
     country_iso_code: str = None
+    enabled: bool = None
 
 
 class ConversationDb(RwModel):
@@ -21,6 +22,7 @@ class ConversationDb(RwModel):
     created: datetime = None
     modified: datetime = None
     country_iso_code: str = None
+    enabled: bool = None
 
 
 class ConversationOut(RwModel):

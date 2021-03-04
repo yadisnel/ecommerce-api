@@ -96,7 +96,7 @@ async def add_one_product(current_user: AccountDb = Depends(get_current_active_u
     product_in.location = current_user.shop.location
     product_in.images = []
     product_in.promoted = False
-    product_in.deleted = False
+    product_in.enabled = False
     product_db : ProductDb = await add_product_impl(user_id=current_user.id, product_in=product_in, conn=conn)
     products_ids: List[str] = [product_db.id]
     dict_favorite: Dict = await get_user_products_favorited_in_array(user_id=current_user.id, products_ids=products_ids,conn=conn)

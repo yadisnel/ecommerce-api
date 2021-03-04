@@ -1,7 +1,6 @@
 from models.rwmodels import RwModel
 from typing import List
 from models.images import ImageDb
-from models.locations import Location
 from datetime import datetime
 
 
@@ -22,13 +21,13 @@ class ProductIn(RwModel):
     currency: str = None
     created: datetime = None
     modified: datetime = None
-    location: Location = None
+    location: List[float] = None
     promoted: bool = None
     likes: int = None
     views: int = None
     score: float = None
-    deleted: bool = None
     country_iso_code: str = None
+    enabled: bool = None
 
 
 class ProductDb(RwModel):
@@ -49,14 +48,14 @@ class ProductDb(RwModel):
     currency: str = None
     created: datetime = None
     modified: datetime = None
-    location: Location = None
+    location: List[float] = None
     promoted: bool = None
     favorite: bool = None
     likes: int = None
     views: int = None
     score: float = None
-    deleted: bool = None
     country_iso_code: str = None
+    enabled: bool = None
 
 
 class ProductOut(RwModel):
@@ -77,13 +76,12 @@ class ProductOut(RwModel):
     currency: str = None
     created: datetime = None
     modified: datetime = None
-    location: Location = None
+    location: List[float] = None
     promoted: bool = None
     favorite: bool = None
     likes: int = None
     views: int = None
     score: float = None
-    deleted: bool = None
 
 
 class ProductFavoriteIn(RwModel):
@@ -91,6 +89,7 @@ class ProductFavoriteIn(RwModel):
     product_id: str = None
     favorite: bool = None
     country_iso_code: str = None
+    enabled: bool = None
 
 
 class ProductFavoriteDb(RwModel):
@@ -99,6 +98,7 @@ class ProductFavoriteDb(RwModel):
     product_id: str = None
     favorite: bool = None
     country_iso_code: str = None
+    enabled: bool = None
 
 
 class ProductFavoriteOut(RwModel):
@@ -106,5 +106,6 @@ class ProductFavoriteOut(RwModel):
     user_id: str = None
     product_id: str = None
     favorite: bool = None
+
 
 

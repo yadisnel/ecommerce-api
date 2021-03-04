@@ -9,7 +9,7 @@ class CountryIn(RwModel):
     country_iso_code: str = None
     created: datetime = None
     modified: datetime = None
-    deleted: bool = None
+    enabled: bool = None
 
 
 class CountryDb(RwModel):
@@ -19,7 +19,7 @@ class CountryDb(RwModel):
     country_iso_code: str = None
     created: datetime = None
     modified: datetime = None
-    deleted: bool = None
+    enabled: bool = None
 
 
 class CountryOut(RwModel):
@@ -29,7 +29,6 @@ class CountryOut(RwModel):
     country_iso_code: str = None
     created: datetime = None
     modified: datetime = None
-    deleted: bool = None
 
 
 class SyncCountriesOut(RwModel):

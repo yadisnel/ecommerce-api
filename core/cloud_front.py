@@ -23,7 +23,7 @@ def rsa_signer(message):
 
 def get_signed_url(s3_key):
     key_id = 'APKAJWFH4JNSGGTRYADA'
-    url = 'https://d3dgdgroldjn7d.cloudfront.net/' + s3_key
+    url = 'https://drjzgs3ssyfeh.cloudfront.net/' + s3_key
     current_time = datetime.datetime.utcnow()
     expire_date = current_time + datetime.timedelta(days=365000)
     cloudfront_signer = CloudFrontSigner(key_id, rsa_signer)

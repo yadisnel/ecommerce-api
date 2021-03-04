@@ -1,7 +1,7 @@
 from pydantic import Field
 
+from erequests.locations import RequestLocation
 from models.rwmodels import RwModel
-from models.locations import Location
 
 
 class RequestAddProduct(RwModel):
@@ -38,7 +38,7 @@ class RequestSearchProducts(RwModel):
     own: bool  = Field(None, title="Only own products")
     text_search: str = Field(None, title="Text search")
     zone_id: str = Field(None, title="Zone id")
-    near: Location = Field(None, title="Near location")
+    near: RequestLocation = Field(None, title="Near location")
     near_radius: float = Field(None, title="Near radius")
     category_id: str = Field(None, title="Category id")
     sub_category_id: str = Field(None, title="Sub-category id")

@@ -1,18 +1,18 @@
 from databases import DatabaseURL
 
 # Database config local
-# db_host: str = '127.0.0.1'
-# admin_user: str = "boukker"
-# admin_pass: str = "Boukker.123"
-# db_port: int = 27017
-# db_user_db = "admin"
+db_host: str = '127.0.0.1'
+admin_user: str = "boukker"
+admin_pass: str = "Boukker.123"
+db_port: int = 27017
+db_user_db = "admin"
 
 # Database config prod
-db_host: str = '18.158.96.25'
-db_port: int = 27017
-admin_user: str = "admin"
-admin_pass: str = "HyperMongoDb2021*"
-db_user_db = "admin"
+# db_host: str = '18.158.96.25'
+# db_port: int = 27017
+# admin_user: str = "admin"
+# admin_pass: str = "HyperMongoDb2021*"
+# db_user_db = "admin"
 
 db_url = DatabaseURL(
     f"mongodb://{admin_user}:{admin_pass}@{db_host}:{db_port}/{db_user_db}"
@@ -24,7 +24,6 @@ min_conections_count: int = 10
 ecommerce_database_name = "ecommercedb"
 accounts_collection_name = "accounts"
 pending_accounts_collection_name = "pending_accounts"
-
 shops_collection_name = "shops"
 products_collection_name = "products"
 categories_collection_name = "categories"
@@ -32,7 +31,7 @@ zones_collection_name = "zones"
 countries_collection_name = "countries"
 product_favorites_collection_name = "product_favorites"
 conversations_collection_name = "conversations"
-messges_collection_name = "messages"
+messages_collection_name = "messages"
 
 # Broker config
 broker_host: str = "192.168.1.104"

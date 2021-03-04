@@ -35,9 +35,9 @@ async def close_broker_cnx():
     mqtt_client.loop_stop()
 
 
-def get_user_topic(user_id: str):
-    return "users/" + user_id
+def get_user_topic(account_id: str):
+    return "accounts/" + account_id
 
 
 def get_all_users_topic():
-    return "users/all"
+    return "accounts/all"
