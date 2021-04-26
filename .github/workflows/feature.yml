@@ -32,8 +32,9 @@ jobs:
 #        pytest
     - name: Install Serverless Framework
       run: |
-        curl -sL https://deb.nodesource.com/setup_12.x | bash -
-        apt-get install -y nodejs zip
+        sudo apt-get update
+        sudo curl -sL https://deb.nodesource.com/setup_12.x | bash -
+        sudo apt-get install -y nodejs zip
         npm install -g serverless
         npm install serverless-tag-resources
         npm install --save serverless-python-requirements
