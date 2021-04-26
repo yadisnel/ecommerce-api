@@ -1,4 +1,4 @@
-service: ec-api
+service: ecommerce-api
 plugins:
   - serverless-tag-resources
   - serverless-python-requirements
@@ -8,9 +8,9 @@ provider:
   runtime: python3.8
   memorySize: 128
   timeout: 300
-#  stage: ${opt:stage, "dev"}
-#  region: ${opt:region, "us-west-2"}
-#  deploymentBucket: ${self:custom.deployment-bucket.${opt:stage}}
+  stage: ${opt:stage, "dev"}
+  region: ${opt:region, "eu-west-1"}
+  deploymentBucket: ${self:custom.deployment-bucket.${opt:stage}}
   versionFunctions: false
   logRetentionInDays: 30
 
@@ -46,11 +46,10 @@ provider:
           Resource: arn:aws:apigateway:*::*
 
 custom:
-#  deployment-bucket:
-#    dev: dmelen-sls-deployments-us-west-2
-#    qa: dmelen-sls-deployments-us-east-1
-#    homo: dmlen-sls-deployments-us-west-2
-#    prod: dmlen-sls-deployments-us-east-1
+  deployment-bucket:
+    dev: sls-deployments-dev
+    qa: sls-deployments-dev
+    prod: sls-deployments-prod
   pythonRequirements:
     dockerizePip: non-linux
   configuration:
