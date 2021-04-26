@@ -1,0 +1,76 @@
+service: dm-gsuite-api
+######
+plugins:
+  - serverless-tag-resources
+  - serverless-python-requirements
+
+provider:
+  name: aws
+  runtime: python3.8
+  memorySize: 128
+  timeout: 300
+#  stage: ${opt:stage, "dev"}
+#  region: ${opt:region, "us-west-2"}
+#  deploymentBucket: ${self:custom.deployment-bucket.${opt:stage}}
+  versionFunctions: false
+  logRetentionInDays: 30
+
+  stackTags:
+    Component: ${self:service}
+    Service: ${self:service}
+    BusinessUnit: Ecommerce API
+    CostCenter: Ecommerce API
+    Scheduled: no
+    Scope: protected
+    Developer: yadisnel
+
+  tags:
+    Component: ${self:provider.stackTags.Component}
+    Service: ${self:provider.stackTags.Service}
+    BusinessUnit: ${self:provider.stackTags.BusinessUnit}
+    CostCenter: ${self:provider.stackTags.CostCenter}
+    Scheduled: ${self:provider.stackTags.Scheduled}
+    Scope: ${self:provider.stackTags.Scope}
+    Developer: ${self:provider.stackTags.Developer}
+
+
+  iam:
+    roles:
+      statements:
+        - Effect: Allow
+          Action:
+            - "lambda:*"
+          Resource: "*"
+        - Effect: "Allow"
+          Action:
+            - "apigateway:*"
+          Resource: arn:aws:apigateway:*::*
+
+custom:
+#  deployment-bucket:
+#    dev: dmelen-sls-deployments-us-west-2
+#    qa: dmelen-sls-deployments-us-east-1
+#    homo: dmlen-sls-deployments-us-west-2
+#    prod: dmlen-sls-deployments-us-east-1
+  pythonRequirements:
+    dockerizePip: non-linux
+  configuration:
+    dev:
+      enabled: true
+      logLevel: DEBUG
+    prod:
+      enabled: true
+      logLevel: DEBUG
+    unk:
+      enabled: false
+      logLevel: DEBUG
+
+functions:
+  ListAccounts:
+    handler: handler.list_accounts
+    timeout: 300
+    events:
+      - http:
+          path: /accounts
+          method: get
+          cors: true
