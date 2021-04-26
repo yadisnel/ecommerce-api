@@ -46,4 +46,4 @@ jobs:
         ${{ secrets.ENV }}
         EOF
     - name: Deploy Cloud Resources
-      run: sls deploy -s prod --region ${{ secrets.AWS_DEV_REGION }}
+      run: sls deploy -s dev --region ${{ secrets.AWS_DEV_REGION }}

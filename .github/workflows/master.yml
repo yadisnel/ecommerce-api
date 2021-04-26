@@ -33,7 +33,7 @@ jobs:
     - name: Install Serverless Framework
       run: |
         sudo apt-get update
-        sudo curl -sL https://deb.nodesource.com/setup_12.x | bash -
+        sudo curl -sL https://deb.nodesource.com/setup_12.x | sudo bash -
         sudo apt-get install -y nodejs zip
         sudo npm install -g serverless
         sudo npm install serverless-tag-resources

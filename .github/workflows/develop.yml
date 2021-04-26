@@ -33,7 +33,7 @@ jobs:
     - name: Install Serverless Framework
       run: |
         sudo apt-get update
-        sudo curl -sL https://deb.nodesource.com/setup_12.x | bash -
+        sudo curl -sL https://deb.nodesource.com/setup_12.x | sudo bash -
         sudo apt-get install -y nodejs zip
         sudo npm install -g serverless
         sudo npm install serverless-tag-resources
@@ -46,4 +46,4 @@ jobs:
         ${{ secrets.ENV }}
         EOF
     - name: Deploy Cloud Resources
-      run: sls deploy -s prod --region ${{ secrets.AWS_DEV_REGION }}
+      run: sls deploy -s dev --region ${{ secrets.AWS_DEV_REGION }}
