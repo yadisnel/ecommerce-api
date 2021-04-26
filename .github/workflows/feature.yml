@@ -39,7 +39,7 @@ jobs:
         sudo npm install serverless-tag-resources
         sudo npm install --save serverless-python-requirements
     - name: Serverless AWS authentication
-      run: sls config credentials --provider aws --key ${{ secrets.AWS_ACCESS_KEY_ID }} --secret ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      run: sls config credentials --provider aws --key ${{ secrets.AWS_ACCESS_KEY }} --secret ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     - name: Create env file
       run: | # cp sample.env.yml env.yml
         cat > env.yml << EOF
