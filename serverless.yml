@@ -10,7 +10,7 @@ provider:
   timeout: 300
   stage: ${opt:stage, "dev"}
   region: ${opt:region, "eu-west-1"}
-  deploymentBucket: ${self:custom.deployment-bucket.${opt:stage}}
+  deploymentBucket: ${self:custom.deployment-bucket}
   versionFunctions: false
   logRetentionInDays: 30
 
@@ -48,7 +48,7 @@ provider:
 custom:
   deployment-bucket:
     dev: sls-deployments-dev
-    qa: sls-deployments-dev
+    qa: sls-deployments-qa
     prod: sls-deployments-prod
   pythonRequirements:
     dockerizePip: non-linux
