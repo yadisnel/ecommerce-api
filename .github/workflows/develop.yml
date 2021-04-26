@@ -13,7 +13,6 @@ jobs:
       with:
         python-version: '3.8'
         architecture: 'x64'
-    # You can test your matrix by printing the current Python version
     - name: Display Python version
       run: python -c "import sys; print(sys.version)"
     - name: Install dependencies
@@ -41,7 +40,7 @@ jobs:
     - name: Serverless AWS authentication
       run: sls config credentials --provider aws --key ${{ secrets.AWS_ACCESS_KEY_ID }} --secret ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     - name: Create env file
-      run: | # cp sample.env.yml env.yml
+      run: |
         cat > env.yml << EOF
         ${{ secrets.ENV }}
         EOF
